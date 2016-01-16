@@ -18,61 +18,39 @@ import com.badlogic.gdx.utils.TimeUtils;
 
 public class MyBattleshipGame extends ApplicationAdapter
 {
-	private Texture shipCenterImage;
-	private Texture shipEdgeImage;
+	private Texture m_txShipCenterImage;
+	private Texture m_txShipEdgeImage;
     private Texture m_txBoardBg;
 	private Sound missSound;
 	private Music beginMusic;
 	private SpriteBatch batch;
 	private OrthographicCamera camera;
-	private Rectangle bucket;
-	private Array<Rectangle> raindrops;
-	private long lastDropTime;
 	private Board m_bBoard;
 
 	@Override
 	public void create()
 	{
 		// load the images for the droplet and the bucket, 64x64 pixels each
-		shipCenterImage = new Texture(Gdx.files.internal("ship_center.png"));
-		shipEdgeImage = new Texture(Gdx.files.internal("ship_edge.png"));
+		m_txShipCenterImage = new Texture(Gdx.files.internal("ship_center.png"));
+		m_txShipEdgeImage = new Texture(Gdx.files.internal("ship_edge.png"));
         m_txBoardBg = new Texture(Gdx.files.internal("board.png"));
-        m_bBoard = new Board(m_txBoardBg, shipCenterImage, shipEdgeImage);
+        m_bBoard = new Board(m_txBoardBg, m_txShipCenterImage, m_txShipEdgeImage);
+
+        //TEST Place ships randomly on this board and just draw it
+        m_bBoard.placeShipsRandom();
 
 		// load the drop sound effect and the rain background "music"
-		missSound = Gdx.audio.newSound(Gdx.files.internal("miss.ogg"));
-		beginMusic = Gdx.audio.newMusic(Gdx.files.internal("beginningMusic.ogg"));
+		//missSound = Gdx.audio.newSound(Gdx.files.internal("miss.ogg"));
+		//beginMusic = Gdx.audio.newMusic(Gdx.files.internal("beginningMusic.ogg"));
 
 		// start the playback of the background music immediately
-		beginMusic.setLooping(true);
-		beginMusic.play();
+		//beginMusic.setLooping(true);
+		//beginMusic.play();
 
-		// create the camera and the SpriteBatch
+		//Set the origin 0,0 to be upper-left, not bottom-left like gdx default
 		camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		camera.setToOrtho(true, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		batch = new SpriteBatch();
-
-		// create a Rectangle to logically represent the bucket
-		bucket = new Rectangle();
-		bucket.x = 800 / 2 - 64 / 2; // center the bucket horizontally
-		bucket.y = 20; // bottom left corner of the bucket is 20 pixels above the bottom screen edge
-		bucket.width = 64;
-		bucket.height = 64;
-
-		// create the raindrops array and spawn the first raindrop
-		raindrops = new Array<Rectangle>();
-		spawnRaindrop();
-	}
-
-	private void spawnRaindrop()
-	{
-		Rectangle raindrop = new Rectangle();
-		raindrop.x = MathUtils.random(0, 800-64);
-		raindrop.y = 600;
-		raindrop.width = 64;
-		raindrop.height = 64;
-		raindrops.add(raindrop);
-		lastDropTime = TimeUtils.nanoTime();
 	}
 
 	@Override
@@ -92,50 +70,25 @@ public class MyBattleshipGame extends ApplicationAdapter
 		// coordinate system specified by the camera.
 		batch.setProjectionMatrix(camera.combined);
 
-		// begin a new batch and draw the bucket and
-		// all drops
+		//Draw within this batch
 		batch.begin();
-		batch.draw(shipEdgeImage, bucket.x, bucket.y);
-		for(Rectangle raindrop: raindrops)
-		{
-			batch.draw(shipCenterImage, raindrop.x, raindrop.y);
-		}
+
+        m_bBoard.draw(false, batch);
+
 		batch.end();
 
-		// process user input
-		if(Gdx.input.isKeyPressed(Keys.LEFT)) bucket.x -= 600 * Gdx.graphics.getDeltaTime();
-		if(Gdx.input.isKeyPressed(Keys.RIGHT)) bucket.x += 600 * Gdx.graphics.getDeltaTime();
-
-		// make sure the bucket stays within the screen bounds
-		if(bucket.x < 0) bucket.x = 0;
-		if(bucket.x > 800 - 64) bucket.x = 800 - 64;
-
-		// check if we need to create a new raindrop
-		if(TimeUtils.nanoTime() - lastDropTime > 1000000000) spawnRaindrop();
-
-		// move the raindrops, remove any that are beneath the bottom edge of
-		// the screen or that hit the bucket. In the later case we play back
-		// a sound effect as well.
-		Iterator<Rectangle> iter = raindrops.iterator();
-		while(iter.hasNext())
-		{
-			Rectangle raindrop = iter.next();
-			raindrop.y -= 200 * Gdx.graphics.getDeltaTime();
-			if(raindrop.y + 64 < 0) iter.remove();
-			if(raindrop.overlaps(bucket))
-			{
-				missSound.play();
-				iter.remove();
-			}
-		}
+		//TEST Move ships around as we press R
+        if(Gdx.input.isKeyJustPressed(Keys.R))
+        //if(Gdx.input.isKeyPressed(Keys.R))
+            m_bBoard.placeShipsRandom();
 	}
 
 	@Override
 	public void dispose()
 	{
 		// dispose of all the native resources
-		shipCenterImage.dispose();
-		shipEdgeImage.dispose();
+		m_txShipCenterImage.dispose();
+		m_txShipEdgeImage.dispose();
 		missSound.dispose();
 		beginMusic.dispose();
 		batch.dispose();

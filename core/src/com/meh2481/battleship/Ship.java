@@ -20,8 +20,10 @@ public abstract class Ship
 
     public void rotateHorizontal() { m_bHorizontal = true; }
     public void rotateVertical() { m_bHorizontal = false; }
+    public void setHorizontal(boolean b) { m_bHorizontal = b; }
     public boolean isHorizontal() { return m_bHorizontal; }
     public boolean isVertical() { return !m_bHorizontal; }
+    public void setPosition(int x, int y) { m_iXPos = x; m_iYPos = y; }
     public void setCenterSprite(Sprite sSpr) { m_sCenterSprite = sSpr; }
     public void setEdgeSprite(Sprite sSpr) { m_sEdgeSprite = sSpr; }
     public boolean isSunk() { return m_iHitPositions.size == getSize(); }
@@ -35,7 +37,8 @@ public abstract class Ship
         m_iHitPositions = new Array<Integer>();
     }
 
-    public boolean hitShip(int iXpos, int iYpos)
+    //Returns true and marks as hit if hit, returns false on miss
+    public boolean fireAtShip(int iXpos, int iYpos)
     {
         if(isHit(iXpos, iYpos))
         {
@@ -48,6 +51,7 @@ public abstract class Ship
         return false;
     }
 
+    //Test if iXpos, iYpos is a position the ship has already been hit on. Return true if so, false if not
     public boolean alreadyHit(int iXpos, int iYpos)
     {
         if(isHit(iXpos, iYpos))
@@ -69,6 +73,7 @@ public abstract class Ship
         return false;
     }
 
+    //Test if iXpos, iYpos is a location on the ship. Return true if it is, false if not
     public boolean isHit(int iXpos, int iYpos)
     {
         if(m_bHorizontal)
@@ -100,8 +105,8 @@ public abstract class Ship
             {
                 //Draw both center and edge for hit tiles
                 //TODO Depends on how we handle misses and drawing previous guesses
-                float x = m_iXPos + ((m_bHorizontal)?(i):(0))*m_sCenterSprite.getWidth();
-                float y = m_iYPos + ((m_bHorizontal)?(0):(i))*m_sCenterSprite.getHeight();
+                float x = (m_iXPos + ((m_bHorizontal)?(i):(0)))*m_sCenterSprite.getWidth();
+                float y = (m_iYPos + ((m_bHorizontal)?(0):(i)))*m_sCenterSprite.getHeight();
                 m_sEdgeSprite.setPosition(x, y);
                 m_sEdgeSprite.draw(bBatch);
                 m_sCenterSprite.setPosition(x, y);
@@ -114,18 +119,19 @@ public abstract class Ship
             for (int i = 0; i < getSize(); i++)
             {
                 //Draw horizontally or vertically depending on our rotation
-                m_sEdgeSprite.setPosition(m_iXPos + ((m_bHorizontal)?(i):(0))*m_sEdgeSprite.getWidth(), m_iYPos + ((m_bHorizontal)?(0):(i))*m_sEdgeSprite.getHeight());
+                m_sEdgeSprite.setPosition((m_iXPos + ((m_bHorizontal)?(i):(0)))*m_sEdgeSprite.getWidth(), (m_iYPos + ((m_bHorizontal)?(0):(i)))*m_sEdgeSprite.getHeight());
                 m_sEdgeSprite.draw(bBatch);
             }
             //Draw center piece for tiles that have been hit
             for(int i : m_iHitPositions)
             {
-                m_sCenterSprite.setPosition(m_iXPos + ((m_bHorizontal)?(i):(0))*m_sCenterSprite.getWidth(), m_iYPos + ((m_bHorizontal)?(0):(i))*m_sCenterSprite.getHeight());
+                m_sCenterSprite.setPosition((m_iXPos + ((m_bHorizontal)?(i):(0)))*m_sCenterSprite.getWidth(), (m_iYPos + ((m_bHorizontal)?(0):(i)))*m_sCenterSprite.getHeight());
                 m_sCenterSprite.draw(bBatch);
             }
         }
     }
 
+    //Return true if these ships overlap, false otherwise
     public boolean checkOverlap(Ship sOther)
     {
         boolean bOverlapping = false;
@@ -165,7 +171,7 @@ public abstract class Ship
         else
         {
             //Same as above test
-            if(sOther.m_iXPos < m_iXPos &&
+            if(sOther.m_iXPos <= m_iXPos &&
                sOther.m_iXPos + sOther.getSize() >= m_iXPos &&
                m_iYPos <= sOther.m_iYPos &&
                m_iYPos + getSize() >= sOther.m_iYPos)
