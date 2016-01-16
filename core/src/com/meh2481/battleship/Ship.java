@@ -26,6 +26,15 @@ public abstract class Ship
     public void setEdgeSprite(Sprite sSpr) { m_sEdgeSprite = sSpr; }
     public boolean isSunk() { return m_iHitPositions.size == getSize(); }
 
+    public Ship(Sprite sCenter, Sprite sEdge)
+    {
+        m_sCenterSprite = sCenter;
+        m_sEdgeSprite = sEdge;
+        m_iXPos = m_iYPos = -1;
+        m_bHorizontal = true;
+        m_iHitPositions = new Array<Integer>();
+    }
+
     public boolean hitShip(int iXpos, int iYpos)
     {
         if(isHit(iXpos, iYpos))
@@ -82,6 +91,7 @@ public abstract class Ship
     public void draw(boolean bHidden, Batch bBatch)
     {
         if(m_sCenterSprite == null || m_sEdgeSprite == null) return;
+        if(m_iXPos < 0 || m_iYPos < 0) return;
 
         if(bHidden)
         {
