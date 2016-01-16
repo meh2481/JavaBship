@@ -44,8 +44,8 @@ public class MyBattleshipGame extends ApplicationAdapter
 		beginMusic.play();
 
 		// create the camera and the SpriteBatch
-		camera = new OrthographicCamera();
-		camera.setToOrtho(false, 800, 600);
+		camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+		camera.setToOrtho(true, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		batch = new SpriteBatch();
 
 		// create a Rectangle to logically represent the bucket
