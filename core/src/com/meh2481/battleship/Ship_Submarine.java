@@ -7,7 +7,7 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
  */
 public class Ship_Submarine extends Ship
 {
-    protected int getSize() { return 3; }
+    public int getSize() { return 3; }
     public String getName() { return "Submarine"; }
 
     public Ship_Submarine(Sprite sCenter, Sprite sEdge)

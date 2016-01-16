@@ -7,7 +7,7 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
  */
 public class Ship_Carrier extends Ship
 {
-    protected int getSize() { return 5; }
+    public int getSize() { return 5; }
     public String getName() { return "Carrier"; }
 
     public Ship_Carrier(Sprite sCenter, Sprite sEdge)

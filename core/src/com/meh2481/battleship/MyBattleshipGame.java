@@ -20,6 +20,7 @@ public class MyBattleshipGame extends ApplicationAdapter
 {
 	private Texture shipCenterImage;
 	private Texture shipEdgeImage;
+    private Texture m_txBoardBg;
 	private Sound missSound;
 	private Music beginMusic;
 	private SpriteBatch batch;
@@ -27,6 +28,7 @@ public class MyBattleshipGame extends ApplicationAdapter
 	private Rectangle bucket;
 	private Array<Rectangle> raindrops;
 	private long lastDropTime;
+	private Board m_bBoard;
 
 	@Override
 	public void create()
@@ -34,6 +36,8 @@ public class MyBattleshipGame extends ApplicationAdapter
 		// load the images for the droplet and the bucket, 64x64 pixels each
 		shipCenterImage = new Texture(Gdx.files.internal("ship_center.png"));
 		shipEdgeImage = new Texture(Gdx.files.internal("ship_edge.png"));
+        m_txBoardBg = new Texture(Gdx.files.internal("board.png"));
+        m_bBoard = new Board(m_txBoardBg, shipCenterImage, shipEdgeImage);
 
 		// load the drop sound effect and the rain background "music"
 		missSound = Gdx.audio.newSound(Gdx.files.internal("miss.ogg"));

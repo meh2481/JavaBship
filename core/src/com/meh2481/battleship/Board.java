@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.utils.Array;
 
 /**
  * Created by Mark on 1/15/2016.
@@ -14,53 +15,60 @@ public class Board
     //What else?
 
     private Texture m_txBoardBg;
-    private Ship_Carrier m_sCarrier;
-    private Ship_Battleship m_sBattleship;
-    private Ship_Cruiser m_sCruiser;
-    private Ship_Submarine m_sSubmarine;
-    private Ship_Destroyer m_sDestroyer;
+    private Array<Ship> m_lShips;
+    private Sprite m_sCenter, m_sEdge;
 
-    public Board(Texture txBg, Sprite sCenter, Sprite sEdge)
+    public Board(Texture txBg, Texture txCenter, Texture txEdge)
     {
         m_txBoardBg = txBg;
-        m_sCarrier = new Ship_Carrier(sCenter, sEdge);
-        m_sBattleship = new Ship_Battleship(sCenter, sEdge);
-        m_sCruiser = new Ship_Cruiser(sCenter, sEdge);
-        m_sSubmarine = new Ship_Submarine(sCenter, sEdge);
-        m_sDestroyer = new Ship_Destroyer(sCenter, sEdge);
+        m_lShips = new Array<Ship>();
+        m_sCenter = new Sprite(txCenter);
+        m_sEdge = new Sprite(txEdge);
+        Ship_Carrier sCarrier = new Ship_Carrier(m_sCenter, m_sEdge);
+        Ship_Battleship sBattleship = new Ship_Battleship(m_sCenter, m_sEdge);
+        Ship_Cruiser sCruiser = new Ship_Cruiser(m_sCenter, m_sEdge);
+        Ship_Submarine sSubmarine = new Ship_Submarine(m_sCenter, m_sEdge);
+        Ship_Destroyer sDestroyer = new Ship_Destroyer(m_sCenter, m_sEdge);
+        m_lShips.add(sCarrier);
+        m_lShips.add(sBattleship);
+        m_lShips.add(sCruiser);
+        m_lShips.add(sSubmarine);
+        m_lShips.add(sDestroyer);
     }
 
     public void draw(boolean bHidden, Batch bBatch)
     {
         bBatch.draw(m_txBoardBg, 0, 0);
         bBatch.setColor(0,0,0,1);   //Draw ships black
-        m_sCarrier.draw(bHidden, bBatch);
-        m_sBattleship.draw(bHidden, bBatch);
-        m_sCruiser.draw(bHidden, bBatch);
-        m_sSubmarine.draw(bHidden, bBatch);
-        m_sDestroyer.draw(bHidden, bBatch);
-        bBatch.setColor(Color.WHITE);
+        for(Ship s : m_lShips)
+            s.draw(bHidden, bBatch);
+        bBatch.setColor(Color.WHITE);   //Reset color
     }
 
     public boolean boardCleared()
     {
-        return (m_sCarrier.isSunk() &&
-                m_sBattleship.isSunk() &&
-                m_sCruiser.isSunk() &&
-                m_sSubmarine.isSunk() &&
-                m_sDestroyer.isSunk());
+        for(Ship s : m_lShips)
+        {
+            if(!s.isSunk())
+                return false;
+        }
+        return true;
     }
 
     public int shipsLeft()
     {
         int numLeft = 0;
-        if(!m_sCarrier.isSunk()) numLeft++;
-        if(!m_sBattleship.isSunk()) numLeft++;
-        if(!m_sCruiser.isSunk()) numLeft++;
-        if(!m_sSubmarine.isSunk()) numLeft++;
-        if(!m_sDestroyer.isSunk()) numLeft++;
+        for(Ship s : m_lShips)
+        {
+            if(!s.isSunk())
+                numLeft++;
+        }
         return numLeft;
     }
 
+    public void placeShipsRandom()
+    {
+
+    }
     //TODO Ship placement and test for collisions between ships
 }
