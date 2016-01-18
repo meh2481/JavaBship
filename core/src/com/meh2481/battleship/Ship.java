@@ -9,8 +9,8 @@ import com.badlogic.gdx.utils.Array;
  */
 public abstract class Ship
 {
-    private Sprite m_sCenterSprite;
-    private Sprite m_sEdgeSprite;
+    private Sprite m_sShipHitSprite;
+    private Sprite m_sShipOKSprite;
     private boolean m_bHorizontal;
     private int m_iXPos, m_iYPos;
     private Array<Integer> m_iHitPositions;
@@ -24,14 +24,14 @@ public abstract class Ship
     public boolean isHorizontal() { return m_bHorizontal; }
     public boolean isVertical() { return !m_bHorizontal; }
     public void setPosition(int x, int y) { m_iXPos = x; m_iYPos = y; }
-    public void setCenterSprite(Sprite sSpr) { m_sCenterSprite = sSpr; }
-    public void setEdgeSprite(Sprite sSpr) { m_sEdgeSprite = sSpr; }
+    public void setCenterSprite(Sprite sSpr) { m_sShipHitSprite = sSpr; }
+    public void setEdgeSprite(Sprite sSpr) { m_sShipOKSprite = sSpr; }
     public boolean isSunk() { return m_iHitPositions.size == getSize(); }
 
-    public Ship(Sprite sCenter, Sprite sEdge)
+    public Ship(Sprite sShipHit, Sprite sShipOK)
     {
-        m_sCenterSprite = sCenter;
-        m_sEdgeSprite = sEdge;
+        m_sShipHitSprite = sShipHit;
+        m_sShipOKSprite = sShipOK;
         m_iXPos = m_iYPos = -1;
         m_bHorizontal = true;
         m_iHitPositions = new Array<Integer>();
@@ -80,14 +80,14 @@ public abstract class Ship
         {
             if(iYpos == m_iYPos &&
                iXpos >= m_iXPos &&
-               iXpos <= m_iXPos + getSize())
+               iXpos < m_iXPos + getSize())
                 return true;
         }
         else
         {
             if(iXpos == m_iXPos &&
                iYpos >= m_iYPos &&
-               iYpos <= m_iYPos + getSize())
+               iYpos < m_iYPos + getSize())
                 return true;
         }
         return false;
@@ -95,7 +95,7 @@ public abstract class Ship
 
     public void draw(boolean bHidden, Batch bBatch)
     {
-        if(m_sCenterSprite == null || m_sEdgeSprite == null) return;
+        if(m_sShipHitSprite == null || m_sShipOKSprite == null) return;
         if(m_iXPos < 0 || m_iYPos < 0) return;
 
         if(bHidden)
@@ -104,34 +104,34 @@ public abstract class Ship
             for(int i : m_iHitPositions)
             {
                 //Draw both center and edge for hit tiles
-                //TODO Depends on how we handle misses and drawing previous guesses
-                float x = (m_iXPos + ((m_bHorizontal)?(i):(0)))*m_sCenterSprite.getWidth();
-                float y = (m_iYPos + ((m_bHorizontal)?(0):(i)))*m_sCenterSprite.getHeight();
-                m_sEdgeSprite.setPosition(x, y);
-                m_sEdgeSprite.draw(bBatch);
-                m_sCenterSprite.setPosition(x, y);
-                m_sCenterSprite.draw(bBatch);
+                float x = (m_iXPos + ((m_bHorizontal)?(i):(0)))* m_sShipHitSprite.getWidth();
+                float y = (m_iYPos + ((m_bHorizontal)?(0):(i)))* m_sShipHitSprite.getHeight();
+                m_sShipOKSprite.setPosition(x, y);
+                m_sShipOKSprite.draw(bBatch);
+                m_sShipHitSprite.setPosition(x, y);
+                m_sShipHitSprite.draw(bBatch);
             }
         }
         else
         {
-            //Draw all ship tile edges first
+            //Draw all ship tiles first
             for (int i = 0; i < getSize(); i++)
             {
                 //Draw horizontally or vertically depending on our rotation
-                m_sEdgeSprite.setPosition((m_iXPos + ((m_bHorizontal)?(i):(0)))*m_sEdgeSprite.getWidth(), (m_iYPos + ((m_bHorizontal)?(0):(i)))*m_sEdgeSprite.getHeight());
-                m_sEdgeSprite.draw(bBatch);
+                m_sShipOKSprite.setPosition((m_iXPos + ((m_bHorizontal)?(i):(0)))* m_sShipOKSprite.getWidth(), (m_iYPos + ((m_bHorizontal)?(0):(i)))* m_sShipOKSprite.getHeight());
+                m_sShipOKSprite.draw(bBatch);
             }
-            //Draw center piece for tiles that have been hit
+            //Draw image for tiles on the ship that have been hit
             for(int i : m_iHitPositions)
             {
-                m_sCenterSprite.setPosition((m_iXPos + ((m_bHorizontal)?(i):(0)))*m_sCenterSprite.getWidth(), (m_iYPos + ((m_bHorizontal)?(0):(i)))*m_sCenterSprite.getHeight());
-                m_sCenterSprite.draw(bBatch);
+                m_sShipHitSprite.setPosition((m_iXPos + ((m_bHorizontal)?(i):(0)))* m_sShipHitSprite.getWidth(), (m_iYPos + ((m_bHorizontal)?(0):(i)))* m_sShipHitSprite.getHeight());
+                m_sShipHitSprite.draw(bBatch);
             }
         }
     }
 
     //Return true if these ships overlap, false otherwise
+    //TODO Check and see if ship pos 1 = 0 is causing this to return true when it shouldn't...
     public boolean checkOverlap(Ship sOther)
     {
         boolean bOverlapping = false;
