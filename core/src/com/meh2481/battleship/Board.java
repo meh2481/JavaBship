@@ -8,6 +8,7 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
 
 import java.awt.*;
+import java.util.Iterator;
 
 /**
  * Created by Mark on 1/15/2016.
@@ -19,7 +20,7 @@ public class Board
 
     private Texture m_txBoardBg;    //Texture for the board background
     private Texture m_txMissImage;  //Image to draw when we've guessed somewhere and missed
-    private Array<Ship> m_lShips;   //Ships on this board
+    protected Array<Ship> m_lShips;   //Ships on this board
     private Array<Point> m_lMissGuessPos;   //Places on the map that have been guessed already, and were misses
 
     public Board(Texture txBg, Texture txMiss, Texture txCenter, Texture txEdge)
@@ -38,6 +39,14 @@ public class Board
         m_lShips.add(new Ship_Cruiser(sCenter, sEdge));
         m_lShips.add(new Ship_Submarine(sCenter, sEdge));   //It's yellow and you live there
         m_lShips.add(new Ship_Destroyer(sCenter, sEdge));
+    }
+
+    public void reset()
+    {
+        for(Ship s : m_lShips)
+            s.reset();
+
+        m_lMissGuessPos.clear();
     }
 
     public void draw(boolean bHidden, Batch bBatch)

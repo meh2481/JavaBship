@@ -21,7 +21,8 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 	private Music m_mBeginMusic;
 	private SpriteBatch m_bBatch;
 	private OrthographicCamera m_cCamera;
-	private Board m_bBoard;
+	private Board_PlayerAI m_bBoard;
+    private boolean m_bPlacingShips;
 
 	@Override
 	public void create()
@@ -34,10 +35,11 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		m_txShipEdgeImage = new Texture(Gdx.files.internal("ship_edge.png"));
         m_txMissImage = new Texture(Gdx.files.internal("miss.png"));
         m_txBoardBg = new Texture(Gdx.files.internal("board.png"));
-        m_bBoard = new Board(m_txBoardBg, m_txMissImage, m_txShipCenterImage, m_txShipEdgeImage);
+        m_bBoard = new Board_PlayerAI(m_txBoardBg, m_txMissImage, m_txShipCenterImage, m_txShipEdgeImage);
 
         //TEST Place ships randomly on this board and just draw it
-        m_bBoard.placeShipsRandom();
+        m_bBoard.startPlacingShips();//placeShipsRandom();
+        m_bPlacingShips = true;
 
 		//Load the sound effects and music
 		m_sMissSound = Gdx.audio.newSound(Gdx.files.internal("miss.ogg"));
@@ -79,7 +81,16 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 	{
 		//TEST Move ships around as we press R
 		if(keycode == Keys.R)
-			m_bBoard.placeShipsRandom();
+        {
+            m_bBoard.reset();
+            m_bBoard.startPlacingShips();
+            m_bPlacingShips = true;
+        }
+        else if(keycode == Keys.T)
+        {
+            m_bBoard.placeShipsRandom();
+            m_bPlacingShips = false;
+        }
 
 		return false;
 	}
@@ -100,16 +111,24 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 	public boolean touchDown(int screenX, int screenY, int pointer, int button)
 	{
         int iTileX, iTileY;
-        iTileX = screenX / m_bBoard.TILE_SIZE;
-        iTileY = screenY / m_bBoard.TILE_SIZE;
+        iTileX = screenX / Board.TILE_SIZE;
+        iTileY = screenY / Board.TILE_SIZE;
 		if(button == Input.Buttons.LEFT)
 		{
-            if(!m_bBoard.alreadyFired(iTileX, iTileY))
+            if(m_bPlacingShips)
             {
-                Ship sHit = m_bBoard.fireAtPos(iTileX, iTileY);
-                if(sHit != null)
+                if(m_bBoard.placeShip(iTileX, iTileY))
+                    m_bPlacingShips = false;    //Done placing ships; start playing nao
+            }
+            else    //Playing or whatever
+            {
+                if (!m_bBoard.alreadyFired(iTileX, iTileY))
                 {
-                    //TODO Handle hitting a ship
+                    Ship sHit = m_bBoard.fireAtPos(iTileX, iTileY);
+                    if (sHit != null)
+                    {
+                        //TODO Handle hitting a ship
+                    }
                 }
             }
 			//posX = screenX - sprite.getWidth()/2;
@@ -117,8 +136,8 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		}
 		else if(button == Input.Buttons.RIGHT)
 		{
-			//posX = Gdx.graphics.getWidth()/2 - sprite.getWidth()/2;
-			//posY = Gdx.graphics.getHeight()/2 - sprite.getHeight()/2;
+			if(m_bPlacingShips)
+                m_bBoard.rotateShip();
 		}
 		return false;
 	}
@@ -138,6 +157,13 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 	@Override
 	public boolean mouseMoved(int screenX, int screenY)
 	{
+        int iTileX, iTileY;
+        iTileX = screenX / Board.TILE_SIZE;
+        iTileY = screenY / Board.TILE_SIZE;
+        if(m_bPlacingShips)
+        {
+            m_bBoard.moveShip(iTileX, iTileY);
+        }
 		return false;
 	}
 
@@ -153,6 +179,8 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		//Clean up resources
 		m_txShipCenterImage.dispose();
 		m_txShipEdgeImage.dispose();
+        m_txMissImage.dispose();
+        m_txBoardBg.dispose();
 		m_sMissSound.dispose();
 		m_mBeginMusic.dispose();
         m_bBatch.dispose();

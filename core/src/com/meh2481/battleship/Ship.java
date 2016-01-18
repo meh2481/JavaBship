@@ -32,6 +32,11 @@ public abstract class Ship
     {
         m_sShipHitSprite = sShipHit;
         m_sShipOKSprite = sShipOK;
+        reset();
+    }
+
+    public void reset()
+    {
         m_iXPos = m_iYPos = -1;
         m_bHorizontal = true;
         m_iHitPositions = new Array<Integer>();
@@ -141,8 +146,8 @@ public abstract class Ship
             //Only colliding if on the same row
             if(m_iYPos == sOther.m_iYPos)
             {
-                if (m_iXPos + getSize() > sOther.m_iXPos || //To the left of other ship and overlapping
-                    sOther.m_iXPos + sOther.getSize() > m_iXPos) //To the right of other ship and overlapping
+                if((m_iXPos <= sOther.m_iXPos && m_iXPos + getSize() > sOther.m_iXPos) || //To the left of other ship and overlapping
+                   (sOther.m_iXPos + sOther.getSize() > m_iXPos && sOther.m_iXPos <= m_iXPos)) //To the right of other ship and overlapping
                     bOverlapping = true;
             }
         }
@@ -152,8 +157,8 @@ public abstract class Ship
             //Only colliding if in the same column
             if(m_iXPos == sOther.m_iXPos)
             {
-                if (m_iYPos + getSize() > sOther.m_iYPos || //Above other ship and overlapping
-                    sOther.m_iYPos + sOther.getSize() > m_iYPos) //Below other ship and overlapping
+                if((m_iYPos <= sOther.m_iYPos && m_iYPos + getSize() > sOther.m_iYPos) || //Above other ship and overlapping
+                   (sOther.m_iYPos + sOther.getSize() > m_iYPos && sOther.m_iYPos <= m_iYPos)) //Below other ship and overlapping
                     bOverlapping = true;
             }
         }
@@ -162,9 +167,9 @@ public abstract class Ship
         {
             //Test to see if any square of both ships are colliding
             if(m_iXPos <= sOther.m_iXPos && //Our left side has to be to the left of or colliding with the other ship
-               m_iXPos + getSize() >= sOther.m_iXPos && //Our right side has to be to the right of or colliding with the other ship
+               m_iXPos + getSize() > sOther.m_iXPos && //Our right side has to be to the right of or colliding with the other ship
                sOther.m_iYPos <= m_iYPos && //The other ship's top side has to be above or colliding with our ship
-               sOther.m_iYPos + sOther.getSize() >= m_iYPos) //And the other ship's bottom side has to be below or colliding with our ship
+               sOther.m_iYPos + sOther.getSize() > m_iYPos) //And the other ship's bottom side has to be below or colliding with our ship
                 bOverlapping = true;
         }
         //This ship vertical, other ship horizontal
@@ -172,9 +177,9 @@ public abstract class Ship
         {
             //Same as above test
             if(sOther.m_iXPos <= m_iXPos &&
-               sOther.m_iXPos + sOther.getSize() >= m_iXPos &&
+               sOther.m_iXPos + sOther.getSize() > m_iXPos &&
                m_iYPos <= sOther.m_iYPos &&
-               m_iYPos + getSize() >= sOther.m_iYPos)
+               m_iYPos + getSize() > sOther.m_iYPos)
                 bOverlapping = true;
         }
 
