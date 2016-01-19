@@ -4,6 +4,8 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.utils.Array;
 
+import java.awt.*;
+
 /**
  * Created by Mark on 1/15/2016.
  */
@@ -24,6 +26,7 @@ public abstract class Ship
     public boolean isHorizontal() { return m_bHorizontal; }
     public boolean isVertical() { return !m_bHorizontal; }
     public void setPosition(int x, int y) { m_iXPos = x; m_iYPos = y; }
+    public Point getPosition() { return new Point(m_iXPos, m_iYPos); }
     public void setCenterSprite(Sprite sSpr) { m_sShipHitSprite = sSpr; }
     public void setEdgeSprite(Sprite sSpr) { m_sShipOKSprite = sSpr; }
     public boolean isSunk() { return m_iHitPositions.size == getSize(); }

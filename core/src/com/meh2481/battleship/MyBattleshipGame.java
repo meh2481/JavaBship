@@ -7,9 +7,11 @@ import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
-import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+
+import java.awt.*;
 
 public class MyBattleshipGame extends ApplicationAdapter implements InputProcessor
 {
@@ -17,12 +19,20 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
     private Texture m_txMissImage;
 	private Texture m_txShipEdgeImage;
     private Texture m_txBoardBg;
+	private Texture m_txFireCursor;
 	private Sound m_sMissSound;
 	private Music m_mBeginMusic;
 	private SpriteBatch m_bBatch;
 	private OrthographicCamera m_cCamera;
-	private Board_PlayerAI m_bBoard;
+	private Board_Player m_bPlayerBoard;
     private boolean m_bPlacingShips;
+    private Point m_ptCurMouseTile;   //Current tile the mouse is hovering over
+
+    //Variables to deal with flashing cursor
+    private final float CURSOR_MIN_ALPHA = 0.45f;
+    private final float CURSOR_MAX_ALPHA = 0.7f;
+    private final double CURSOR_FLASH_FREQ = 1.65;
+    private final double NANOSEC = 1000000000.0;
 
 	@Override
 	public void create()
@@ -35,10 +45,11 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		m_txShipEdgeImage = new Texture(Gdx.files.internal("ship_edge.png"));
         m_txMissImage = new Texture(Gdx.files.internal("miss.png"));
         m_txBoardBg = new Texture(Gdx.files.internal("board.png"));
-        m_bBoard = new Board_PlayerAI(m_txBoardBg, m_txMissImage, m_txShipCenterImage, m_txShipEdgeImage);
+		m_txFireCursor = new Texture(Gdx.files.internal("crosshair.png"));
+        m_bPlayerBoard = new Board_Player(m_txBoardBg, m_txMissImage, m_txShipCenterImage, m_txShipEdgeImage);
 
         //TEST Place ships randomly on this board and just draw it
-        m_bBoard.startPlacingShips();//placeShipsRandom();
+        m_bPlayerBoard.startPlacingShips();//placeShipsRandom();
         m_bPlacingShips = true;
 
 		//Load the sound effects and music
@@ -53,6 +64,8 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		m_cCamera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		m_cCamera.setToOrtho(true, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         m_bBatch = new SpriteBatch();
+
+        m_ptCurMouseTile = new Point(-1,-1);
 	}
 
 	@Override
@@ -68,12 +81,21 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         m_bBatch.begin();
 
 		//TODO Determine board to draw and any text overlays
-        m_bBoard.draw(false, m_bBatch);
+        m_bPlayerBoard.draw(false, m_bBatch);
+
+        //Draw crosshair over currently highlighted tile
+        if(!m_bPlacingShips)
+        {
+            //Set the alpha to sinusoidally increase/decrease for a nice effect
+            Color cCursorCol = new Color(1, 1, 1, CURSOR_MAX_ALPHA);    //Start at high alpha
+            double fSecondsElapsed = (double)System.nanoTime() / NANOSEC;   //Use current time for sin alpha multiply
+            cCursorCol.lerp(1,1,1,CURSOR_MIN_ALPHA, (float) Math.sin(fSecondsElapsed * Math.PI * CURSOR_FLASH_FREQ));   //Linearly interpolate this color to final value
+            m_bBatch.setColor(cCursorCol);
+            m_bBatch.draw(m_txFireCursor, m_ptCurMouseTile.x * Board.TILE_SIZE, m_ptCurMouseTile.y * Board.TILE_SIZE);
+            m_bBatch.setColor(Color.WHITE); //Reset color to default
+        }
 
         m_bBatch.end();
-
-        //if(Gdx.input.isKeyJustPressed(Keys.R))
-        //    m_bBoard.placeShipsRandom();
 	}
 
 	@Override
@@ -82,13 +104,13 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		//TEST Move ships around as we press R
 		if(keycode == Keys.R)
         {
-            m_bBoard.reset();
-            m_bBoard.startPlacingShips();
+            m_bPlayerBoard.reset();
+            m_bPlayerBoard.startPlacingShips();
             m_bPlacingShips = true;
         }
         else if(keycode == Keys.T)
         {
-            m_bBoard.placeShipsRandom();
+            m_bPlayerBoard.placeShipsRandom();
             m_bPlacingShips = false;
         }
 
@@ -117,14 +139,14 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		{
             if(m_bPlacingShips)
             {
-                if(m_bBoard.placeShip(iTileX, iTileY))
+                if(m_bPlayerBoard.placeShip(iTileX, iTileY))
                     m_bPlacingShips = false;    //Done placing ships; start playing nao
             }
             else    //Playing or whatever
             {
-                if (!m_bBoard.alreadyFired(iTileX, iTileY))
+                if (!m_bPlayerBoard.alreadyFired(iTileX, iTileY))
                 {
-                    Ship sHit = m_bBoard.fireAtPos(iTileX, iTileY);
+                    Ship sHit = m_bPlayerBoard.fireAtPos(iTileX, iTileY);
                     if (sHit != null)
                     {
                         //TODO Handle hitting a ship
@@ -137,7 +159,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		else if(button == Input.Buttons.RIGHT)
 		{
 			if(m_bPlacingShips)
-                m_bBoard.rotateShip();
+                m_bPlayerBoard.rotateShip();
 		}
 		return false;
 	}
@@ -160,9 +182,11 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         int iTileX, iTileY;
         iTileX = screenX / Board.TILE_SIZE;
         iTileY = screenY / Board.TILE_SIZE;
+        m_ptCurMouseTile.x = iTileX;
+        m_ptCurMouseTile.y = iTileY;
         if(m_bPlacingShips)
         {
-            m_bBoard.moveShip(iTileX, iTileY);
+            m_bPlayerBoard.moveShip(iTileX, iTileY);
         }
 		return false;
 	}
@@ -181,6 +205,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		m_txShipEdgeImage.dispose();
         m_txMissImage.dispose();
         m_txBoardBg.dispose();
+        m_txFireCursor.dispose();
 		m_sMissSound.dispose();
 		m_mBeginMusic.dispose();
         m_bBatch.dispose();
