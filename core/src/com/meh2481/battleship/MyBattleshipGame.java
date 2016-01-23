@@ -14,6 +14,7 @@ import java.awt.*;
 
 public class MyBattleshipGame extends ApplicationAdapter implements InputProcessor
 {
+    //Variables for image/sound resources
 	private Texture m_txShipCenterImage;
     private Texture m_txMissImage;
 	private Texture m_txShipEdgeImage;
@@ -22,25 +23,28 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
     private Texture m_txFireCursorLg;
 	private Sound m_sMissSound;
 	private Music m_mBeginMusic;
+
+    //Variables to handle rendering
 	private SpriteBatch m_bBatch;
 	private OrthographicCamera m_cCamera;
+
+    //Classes that hold game information
 	private Board_Player m_bPlayerBoard;        //Board the player places ships on and the enemy guesses onto
     private Board m_bEnemyBoard;                //Board the enemy places ships on and the player guesses onto
-    private EnemyAI m_aiEnemy;
-    //private boolean m_bPlacingShips;
+    private EnemyAI m_aiEnemy;                  //Enemy player AI
     private Point m_ptCurMouseTile;   //Current tile the mouse is hovering over
 
-	//Variables to handle current game state
-    private int m_iGameMode;
+	//Variables & constants to handle current game state
+    private int m_iGameMode;    //State machine value for current game mode
     private final int MODE_PLACESHIP = 0;
     private final int MODE_PLAYERTURN = 1;
     private final int MODE_ENEMYTURN = 2;
     private final int MODE_GAMEOVER = 3;
-    private long m_iModeCountdown;
-    private long m_iEnemyGuessTimer;    //Pause for a bit before enemy guess so player can tell where they're guessing
+    private long m_iModeCountdown;  //Delay timer for counting down to next game state change
+    private long m_iEnemyGuessTimer;    //Pause timer for before enemy guess so the player can tell where they're guessing
     private final double MODESWITCHTIME = 0.6;
 
-    //Variables to deal with flashing cursor
+    //Constants to deal with flashing cursor
     private final float CURSOR_MIN_ALPHA = 0.45f;
     private final float CURSOR_MAX_ALPHA = 0.7f;
     private final double CURSOR_FLASH_FREQ = 1.65;
@@ -53,38 +57,37 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         //Tell GDX this class will be handling input
         Gdx.input.setInputProcessor(this);
 
-		//Load the game images
+		//Load the game resources
 		m_txShipCenterImage = new Texture(Gdx.files.internal("ship_center.png"));
 		m_txShipEdgeImage = new Texture(Gdx.files.internal("ship_edge.png"));
         m_txMissImage = new Texture(Gdx.files.internal("miss.png"));
         m_txBoardBg = new Texture(Gdx.files.internal("board.png"));
         m_txFireCursorSm = new Texture(Gdx.files.internal("crosshair.png"));
         m_txFireCursorLg = new Texture(Gdx.files.internal("crosshair_lg.png"));
+        m_sMissSound = Gdx.audio.newSound(Gdx.files.internal("miss.ogg"));
+        m_mBeginMusic = Gdx.audio.newMusic(Gdx.files.internal("beginningMusic.ogg"));
+
+        //Create game logic classes
         m_bPlayerBoard = new Board_Player(m_txBoardBg, m_txMissImage, m_txShipCenterImage, m_txShipEdgeImage);
         m_bEnemyBoard = new Board(m_txBoardBg, m_txMissImage, m_txShipCenterImage, m_txShipEdgeImage);
         m_aiEnemy = new EnemyAI();
+        m_bBatch = new SpriteBatch();
 
+        //Initialize game state
         m_bPlayerBoard.startPlacingShips();
         m_bEnemyBoard.placeShipsRandom();
         m_iGameMode = MODE_PLACESHIP;
         m_iModeCountdown = 0;
         m_iEnemyGuessTimer = 0;
-        //m_bPlacingShips = true;
-
-		//Load the sound effects and music
-		m_sMissSound = Gdx.audio.newSound(Gdx.files.internal("miss.ogg"));
-		m_mBeginMusic = Gdx.audio.newMusic(Gdx.files.internal("beginningMusic.ogg"));
+        m_ptCurMouseTile = new Point(-1,-1);
 
 		//TODO Start the playback of the background music immediately
 		//m_mBeginMusic.setLooping(true);
 		//m_mBeginMusic.play();
 
-		//Set the origin 0,0 to be upper-left, not bottom-left like gdx default
+		//Set the camera origin 0,0 to be upper-left, not bottom-left like the gdx default (makes math easier)
 		m_cCamera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		m_cCamera.setToOrtho(true, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        m_bBatch = new SpriteBatch();
-
-        m_ptCurMouseTile = new Point(-1,-1);
 	}
 
 	@Override
@@ -97,101 +100,93 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         m_bBatch.setProjectionMatrix(m_cCamera.combined);
 
         //Update our state machine
-        if(m_iGameMode == MODE_PLAYERTURN && m_iModeCountdown > 0)
+        if(m_iGameMode == MODE_PLAYERTURN && m_iModeCountdown > 0)  //Player turn waiting for enemy turn
         {
-            if(System.nanoTime() >= m_iModeCountdown)
+            if(System.nanoTime() >= m_iModeCountdown)   //Timer expired; set to enemy turn
             {
-                m_iModeCountdown = 0;
-
-                //TODO Pause before enemy guess
-                m_iGameMode = MODE_ENEMYTURN;
-                m_iEnemyGuessTimer = (long)(System.nanoTime() + MODESWITCHTIME * NANOSEC);
-                //m_aiEnemy.guess(m_bPlayerBoard);
+                m_iModeCountdown = 0;   //Reset timer
+                m_iGameMode = MODE_ENEMYTURN;   //Change mode
+                m_iEnemyGuessTimer = (long)(System.nanoTime() + MODESWITCHTIME * NANOSEC);  //Set timer for the pause before an enemy guess
             }
         }
-        else if(m_iGameMode == MODE_ENEMYTURN)   //&& m_iModeCountdown > 0
+        else if(m_iGameMode == MODE_ENEMYTURN)  //Enemy turn
         {
-            if(m_iEnemyGuessTimer > 0)
+            if(m_iEnemyGuessTimer > 0)  //If we're waiting for the enemy firing animation
             {
-                if(System.nanoTime() >= m_iEnemyGuessTimer)
+                if(System.nanoTime() >= m_iEnemyGuessTimer) //If we've waited long enough
                 {
-                    m_aiEnemy.guess(m_bPlayerBoard);
-                    m_iModeCountdown = (long)(System.nanoTime() + MODESWITCHTIME * NANOSEC);
-                    m_iEnemyGuessTimer = 0;
+                    m_aiEnemy.guess(m_bPlayerBoard);    //Make enemy AI fire at their guessed position
+                    m_iModeCountdown = (long)(System.nanoTime() + MODESWITCHTIME * NANOSEC);    //Start countdown for switching to player's turn
+                    m_iEnemyGuessTimer = 0; //Stop counting down
                 }
             }
-            else if(m_iModeCountdown > 0)
+            else if(m_iModeCountdown > 0)   //If we're waiting until countdown is done for player's turn
             {
-                if (System.nanoTime() >= m_iModeCountdown)
+                if(System.nanoTime() >= m_iModeCountdown)  //Countdown is done
                 {
-                    m_iGameMode = MODE_PLAYERTURN;
-                    m_iModeCountdown = 0;
+                    m_iGameMode = MODE_PLAYERTURN;  //Switch to player's turn
+                    m_iModeCountdown = 0;   //Reset timer
                 }
             }
         }
 
-		//Draw within this batch
+        //---------------------------------
+		//Begin drawing
+        //---------------------------------
         m_bBatch.begin();
 
 		//TODO Determine any text overlays to draw
-        //Draw crosshair over currently highlighted tile
-        if(m_iGameMode == MODE_PLAYERTURN)
+
+        if(m_iGameMode == MODE_PLAYERTURN)  //On the player's turn, draw enemy board, guessed positions, and cursor
         {
             //Draw enemy's board and player's guessed positions
             m_bEnemyBoard.draw(true, m_bBatch);
             if(m_iModeCountdown == 0)   //Draw a crosshair on the tile where the mouse cursor currently is hovering
             {
-                //Set the alpha to sinusoidally increase/decrease for a nice effect
+                //Set the cursor's alpha to sinusoidally increase/decrease for a nice pulsating effect
                 Color cCursorCol = new Color(1, 1, 1, CURSOR_MAX_ALPHA);    //Start at high alpha
-                double fSecondsElapsed = (double) System.nanoTime() / NANOSEC;   //Use current time for sin alpha multiply
+                double fSecondsElapsed = (double) System.nanoTime() / NANOSEC;   //Use current time for sinusoidal alpha multiply
                 cCursorCol.lerp(1, 1, 1, CURSOR_MIN_ALPHA, (float) Math.sin(fSecondsElapsed * Math.PI * CURSOR_FLASH_FREQ));   //Linearly interpolate this color to final value
                 m_bBatch.setColor(cCursorCol);
                 m_bBatch.draw(m_txFireCursorSm, m_ptCurMouseTile.x * Board.TILE_SIZE, m_ptCurMouseTile.y * Board.TILE_SIZE);
                 m_bBatch.setColor(Color.WHITE); //Reset color to default
             }
         }
-        else if(m_iGameMode == MODE_ENEMYTURN)
+        else if(m_iGameMode == MODE_ENEMYTURN)  //On enemy's turn, draw player's board and crosshair animation if applicable
         {
             //Draw player's board, showing player where they had placed their ships
             m_bPlayerBoard.draw(false, m_bBatch);
             if(m_iEnemyGuessTimer > 0)  //Draw enemy homing in on their shot
             {
-                //First step: Find pixel coordinates of center of where the crosshair will be
+                //Find pixel coordinates of the center of where the crosshair will be
                 Point ptEnemyGuessPos = m_aiEnemy.nextGuessPos(m_bPlayerBoard);
                 double xCrosshairCenter = ptEnemyGuessPos.x * Board.TILE_SIZE + (double)Board.TILE_SIZE / 2.0;
                 double yCrosshairCenter = ptEnemyGuessPos.y * Board.TILE_SIZE + (double)Board.TILE_SIZE / 2.0;
 
-                //Scale this inwards as time elapses
+                //Scale this crosshair inwards as time elapses
                 double fCrosshairScale = ((double)(m_iEnemyGuessTimer - System.nanoTime()) / NANOSEC) * MODESWITCHTIME * MAX_CROSSHAIR_SCALE + ((double)Board.TILE_SIZE / (double)m_txFireCursorLg.getHeight());
                 double fDrawSize = fCrosshairScale * m_txFireCursorLg.getHeight();
 
-                //Draw centered on the position enemy will be guessing
+                //Draw the crosshair centered on the position where the enemy will be guessing
                 m_bBatch.draw(m_txFireCursorLg, (float)(xCrosshairCenter - fDrawSize / 2.0), (float)(yCrosshairCenter - fDrawSize / 2.0), (float)fDrawSize, (float)fDrawSize);
             }
         }
-        else if(m_iGameMode == MODE_PLACESHIP)
+        else if(m_iGameMode == MODE_PLACESHIP)  //If we're placing ships, just draw board as normal
         {
             m_bPlayerBoard.draw(false, m_bBatch);
         }
 
+        //---------------------------------
+        //End drawing
+        //---------------------------------
         m_bBatch.end();
 	}
 
 	@Override
 	public boolean keyDown(int keycode)
 	{
-		/*/TEST Move ships around as we press R
-		if(keycode == Keys.R)
-        {
-            m_bPlayerBoard.reset();
-            m_bPlayerBoard.startPlacingShips();
-            m_bPlacingShips = true;
-        }
-        else if(keycode == Keys.T)
-        {
-            m_bPlayerBoard.placeShipsRandom();
-            m_bPlacingShips = false;
-        }*/
+		//TODO Exit on Esc, start new game on some other key press
+		//if(keycode == Keys.R)
 
 		return false;
 	}
@@ -211,34 +206,36 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 	@Override
 	public boolean touchDown(int screenX, int screenY, int pointer, int button)
 	{
+        //Find what tile we're clicking on
         int iTileX, iTileY;
         iTileX = screenX / Board.TILE_SIZE;
         iTileY = screenY / Board.TILE_SIZE;
-		if(button == Input.Buttons.LEFT)
+
+		if(button == Input.Buttons.LEFT)    //Clicking left mouse button
 		{
-            if(m_iGameMode == MODE_PLACESHIP)
+            if(m_iGameMode == MODE_PLACESHIP)   //Placing ships; lock this ship's position and go to next ship
             {
                 if(m_bPlayerBoard.placeShip(iTileX, iTileY))
                     m_iGameMode = MODE_PLAYERTURN;    //Done placing ships; start playing now   //TODO Start player/enemy going first randomly?
             }
-            else if(m_iGameMode == MODE_PLAYERTURN && m_iModeCountdown == 0)   //Playing
+            else if(m_iGameMode == MODE_PLAYERTURN && m_iModeCountdown == 0)   //Playing; fire at a ship
             {
-                if (!m_bEnemyBoard.alreadyFired(iTileX, iTileY))
+                if (!m_bEnemyBoard.alreadyFired(iTileX, iTileY))    //If we haven't fired here already
                 {
-                    Ship sHit = m_bEnemyBoard.fireAtPos(iTileX, iTileY);
-                    if (sHit != null)
+                    Ship sHit = m_bEnemyBoard.fireAtPos(iTileX, iTileY);    //Fire!
+                    if(sHit != null)    //If we hit a ship
                     {
                         //TODO Handle hitting a ship
                     }
-                    m_iModeCountdown = (long)(System.nanoTime() + MODESWITCHTIME * NANOSEC);
+                    else
+                        //TODO Handle missing a ship
+                    m_iModeCountdown = (long)(System.nanoTime() + MODESWITCHTIME * NANOSEC);    //Start countdown timer for the start of the enemy turn
                 }
             }
-			//posX = screenX - sprite.getWidth()/2;
-			//posY = Gdx.graphics.getHeight() - screenY - sprite.getHeight()/2;
 		}
-		else if(button == Input.Buttons.RIGHT)
+		else if(button == Input.Buttons.RIGHT)  //Clicking right mouse button
 		{
-			if(m_iGameMode == MODE_PLACESHIP)
+			if(m_iGameMode == MODE_PLACESHIP)   //Rotate ships on RMB if we're currently placing them
                 m_bPlayerBoard.rotateShip();
 		}
 		return false;
@@ -259,15 +256,18 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 	@Override
 	public boolean mouseMoved(int screenX, int screenY)
 	{
+        //Find the tile the player moved the mouse to
         int iTileX, iTileY;
         iTileX = screenX / Board.TILE_SIZE;
         iTileY = screenY / Board.TILE_SIZE;
+
+        //Save this tile position for later
         m_ptCurMouseTile.x = iTileX;
         m_ptCurMouseTile.y = iTileY;
-        if(m_iGameMode == MODE_PLACESHIP)
-        {
+
+        if(m_iGameMode == MODE_PLACESHIP)   //If the player is currently placing ships, move ship preview to this location
             m_bPlayerBoard.moveShip(iTileX, iTileY);
-        }
+
 		return false;
 	}
 

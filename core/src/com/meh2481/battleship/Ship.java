@@ -13,54 +13,57 @@ import java.awt.*;
  */
 public abstract class Ship
 {
-    private Sprite m_sShipHitSprite;
-    private Sprite m_sShipOKSprite;
-    private boolean m_bHorizontal;
-    private int m_iXPos, m_iYPos;
-    private Array<Integer> m_iHitPositions;
+    private Sprite m_sShipHitSprite;    //Image for the ship being hit (inner image)
+    private Sprite m_sShipOKSprite; //Image for the ship being ok (outer image)
+    private boolean m_bHorizontal;  //If the ship is currently aligned horizontally or vertically
+    private int m_iXPos, m_iYPos;   //x,y position of the ship on the map
+    private Array<Integer> m_iHitPositions; //Positions on this ship that have been hit (order doesn't matter)
 
+    //Ship types
     public static final int TYPE_CARRIER = 6;
     public static final int TYPE_BATTLESHIP = 5;
     public static final int TYPE_CRUISER = 4;
     public static final int TYPE_SUBMARINE = 3;
     public static final int TYPE_DESTROYER = 2;
 
+    //Ship sizes (lenghths of each ship type)
     public static final int SIZE_CARRIER = 5;
     public static final int SIZE_BATTLESHIP = 4;
     public static final int SIZE_CRUISER = 3;
     public static final int SIZE_SUBMARINE = 3;
     public static final int SIZE_DESTROYER = 2;
 
+    //Names for each ship to display to user
     public static final String NAME_CARRIER = "Carrier";
     public static final String NAME_BATTLESHIP = "Battleship";
     public static final String NAME_CRUISER = "Cruiser";
     public static final String NAME_SUBMARINE = "Submarine";
     public static final String NAME_DESTROYER = "Destroyer";
 
-    public static final float SHIP_SUNK_ALPHA = 0.7f;
+    //How faded out a sunk ship looks
+    public static final float SHIP_SUNK_ALPHA = 0.65f;
 
+    //Abstract functions to be instantiated in child classes
     abstract public String getName();
     abstract public int getSize();
     abstract public int getType();
 
-    public void rotateHorizontal() { m_bHorizontal = true; }
-    public void rotateVertical() { m_bHorizontal = false; }
-    public void setHorizontal(boolean b) { m_bHorizontal = b; }
-    public boolean isHorizontal() { return m_bHorizontal; }
+    //Getter/setter methods
+    public void setHorizontal(boolean b) { m_bHorizontal = b; }     //Sets the alignment of the ship
+    public boolean isHorizontal() { return m_bHorizontal; }         //Returns the alignment of the ship
     public boolean isVertical() { return !m_bHorizontal; }
-    public void setPosition(int x, int y) { m_iXPos = x; m_iYPos = y; }
-    public Point getPosition() { return new Point(m_iXPos, m_iYPos); }
-    public void setCenterSprite(Sprite sSpr) { m_sShipHitSprite = sSpr; }
-    public void setEdgeSprite(Sprite sSpr) { m_sShipOKSprite = sSpr; }
-    public boolean isSunk() { return m_iHitPositions.size == getSize(); }
+    public void setPosition(int x, int y) { m_iXPos = x; m_iYPos = y; } //Sets the ship position
+    public boolean isSunk() { return m_iHitPositions.size == getSize(); }   //Returns true if this ship has been sunk, false otherwise
 
+    //Constructor. Requires a sprite for the hit image and one for the non-hit image
     public Ship(Sprite sShipHit, Sprite sShipOK)
     {
         m_sShipHitSprite = sShipHit;
         m_sShipOKSprite = sShipOK;
-        reset();
+        reset();    //Set default values
     }
 
+    //Resets this ship to default state (off board and not hit)
     public void reset()
     {
         m_iXPos = m_iYPos = -1;
@@ -68,12 +71,12 @@ public abstract class Ship
         m_iHitPositions = new Array<Integer>();
     }
 
-    //Returns true and marks as hit if hit, returns false on miss
+    //Fires at this ship. Returns true and marks as hit if hit, returns false on miss
     public boolean fireAtShip(int iXpos, int iYpos)
     {
         if(isHit(iXpos, iYpos))
         {
-            if(m_bHorizontal)
+            if(isHorizontal())
                 m_iHitPositions.add(iXpos - m_iXPos);
             else
                 m_iHitPositions.add(iYpos - m_iYPos);
@@ -89,7 +92,7 @@ public abstract class Ship
         {
             for(int i : m_iHitPositions)
             {
-                if(m_bHorizontal)
+                if(isHorizontal())
                 {
                     if(i == iXpos - m_iXPos)
                         return true;
@@ -107,61 +110,61 @@ public abstract class Ship
     //Test if iXpos, iYpos is a location on the ship. Return true if it is, false if not
     public boolean isHit(int iXpos, int iYpos)
     {
-        if(m_bHorizontal)
+        if(isHorizontal())   //Ship aligned horizontally
         {
-            if(iYpos == m_iYPos &&
-               iXpos >= m_iXPos &&
-               iXpos < m_iXPos + getSize())
+            if(iYpos == m_iYPos &&  //Has to be on the same Y position
+               iXpos >= m_iXPos &&  //Has to be equal to or to the right of the left side
+               iXpos < m_iXPos + getSize()) //and has to be to the left of the right side
                 return true;
         }
-        else
+        else    //Ship aligned vertically
         {
-            if(iXpos == m_iXPos &&
-               iYpos >= m_iYPos &&
-               iYpos < m_iYPos + getSize())
+            if(iXpos == m_iXPos &&  //Has to be on the same X position
+               iYpos >= m_iYPos &&  //Has to be equal to or lower than the top side
+               iYpos < m_iYPos + getSize()) //and has to be higher than the bottom side
                 return true;
         }
         return false;
     }
 
+    //Draw the ship to the specified SpriteBatch. Draw all tiles if bHidden is true, only hit tiles if false
     public void draw(boolean bHidden, Batch bBatch)
     {
-        if(m_sShipHitSprite == null || m_sShipOKSprite == null) return;
-        if(m_iXPos < 0 || m_iYPos < 0) return;
+        if(m_sShipHitSprite == null || m_sShipOKSprite == null) return; //Don't draw if no sprite textures
+        if(m_iXPos < 0 || m_iYPos < 0) return;  //Don't draw if off board (position not set yet)
 
-        if(isSunk())
+        if(isSunk())    //Change ship's appearance slightly if it's been sunk
         {
-            m_sShipHitSprite.setColor(1, 1, 1, SHIP_SUNK_ALPHA); //Draw at half alpha to signify sunk
+            m_sShipHitSprite.setColor(1, 1, 1, SHIP_SUNK_ALPHA); //Draw at half alpha
             m_sShipOKSprite.setColor(1, 1, 1, SHIP_SUNK_ALPHA);
         }
 
-        if(bHidden)
+        if(bHidden) //Only draw ship tiles that have been hit (enemy board generally)
         {
-            //Only draw tiles that have been hit
             for(int i : m_iHitPositions)
             {
                 //Draw both center and edge for hit tiles
-                float x = (m_iXPos + ((m_bHorizontal)?(i):(0)))* m_sShipHitSprite.getWidth();
-                float y = (m_iYPos + ((m_bHorizontal)?(0):(i)))* m_sShipHitSprite.getHeight();
+                float x = (m_iXPos + ((isHorizontal())?(i):(0))) * m_sShipHitSprite.getWidth();
+                float y = (m_iYPos + ((isHorizontal())?(0):(i))) * m_sShipHitSprite.getHeight();
                 m_sShipOKSprite.setPosition(x, y);
                 m_sShipOKSprite.draw(bBatch);
                 m_sShipHitSprite.setPosition(x, y);
                 m_sShipHitSprite.draw(bBatch);
             }
         }
-        else
+        else    //Draw all tiles, including ones that haven't been hit (generally player board)
         {
             //Draw all ship tiles first
             for (int i = 0; i < getSize(); i++)
             {
                 //Draw horizontally or vertically depending on our rotation
-                m_sShipOKSprite.setPosition((m_iXPos + ((m_bHorizontal)?(i):(0)))* m_sShipOKSprite.getWidth(), (m_iYPos + ((m_bHorizontal)?(0):(i)))* m_sShipOKSprite.getHeight());
+                m_sShipOKSprite.setPosition((m_iXPos + ((isHorizontal())?(i):(0))) * m_sShipOKSprite.getWidth(), (m_iYPos + ((isHorizontal())?(0):(i))) * m_sShipOKSprite.getHeight());
                 m_sShipOKSprite.draw(bBatch);
             }
             //Draw image for tiles on the ship that have been hit
             for(int i : m_iHitPositions)
             {
-                m_sShipHitSprite.setPosition((m_iXPos + ((m_bHorizontal)?(i):(0)))* m_sShipHitSprite.getWidth(), (m_iYPos + ((m_bHorizontal)?(0):(i)))* m_sShipHitSprite.getHeight());
+                m_sShipHitSprite.setPosition((m_iXPos + ((isHorizontal())?(i):(0))) * m_sShipHitSprite.getWidth(), (m_iYPos + ((isHorizontal())?(0):(i))) * m_sShipHitSprite.getHeight());
                 m_sShipHitSprite.draw(bBatch);
             }
         }
@@ -174,12 +177,11 @@ public abstract class Ship
     }
 
     //Return true if these ships overlap, false otherwise
-    //TODO Check and see if ship pos 1 = 0 is causing this to return true when it shouldn't...
     public boolean checkOverlap(Ship sOther)
     {
         boolean bOverlapping = false;
         //Both ships horizontal
-        if(m_bHorizontal && sOther.m_bHorizontal)
+        if(isHorizontal() && sOther.isHorizontal())
         {
             //Only colliding if on the same row
             if(m_iYPos == sOther.m_iYPos)
@@ -190,7 +192,7 @@ public abstract class Ship
             }
         }
         //Both ships vertical
-        else if(!m_bHorizontal && !sOther.m_bHorizontal)
+        else if(!isHorizontal() && !sOther.isHorizontal())
         {
             //Only colliding if in the same column
             if(m_iXPos == sOther.m_iXPos)
@@ -201,7 +203,7 @@ public abstract class Ship
             }
         }
         //This ship horizontal, other ship vertical
-        else if(m_bHorizontal)
+        else if(isHorizontal())
         {
             //Test to see if any square of both ships are colliding
             if(m_iXPos <= sOther.m_iXPos && //Our left side has to be to the left of or colliding with the other ship
@@ -213,7 +215,7 @@ public abstract class Ship
         //This ship vertical, other ship horizontal
         else
         {
-            //Same as above test
+            //Same as above test, just swap which ship is which
             if(sOther.m_iXPos <= m_iXPos &&
                sOther.m_iXPos + sOther.getSize() > m_iXPos &&
                m_iYPos <= sOther.m_iYPos &&
