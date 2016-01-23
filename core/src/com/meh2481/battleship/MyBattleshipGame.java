@@ -24,7 +24,9 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 	private Music m_mBeginMusic;
 	private SpriteBatch m_bBatch;
 	private OrthographicCamera m_cCamera;
-	private Board_Player m_bPlayerBoard;
+	private Board_Player m_bPlayerBoard;        //Board the player places ships on and the enemy guesses onto
+    private Board m_bEnemyBoard;                //Board the enemy places ships on and the player guesses onto
+    private EnemyAI m_aiEnemy;
     //private boolean m_bPlacingShips;
     private Point m_ptCurMouseTile;   //Current tile the mouse is hovering over
 
@@ -34,6 +36,8 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
     private final int MODE_PLAYERTURN = 1;
     private final int MODE_ENEMYTURN = 2;
     private final int MODE_GAMEOVER = 3;
+    private long m_iModeCountdown;
+    private final double MODESWITCHTIME = 0.5;
 
     //Variables to deal with flashing cursor
     private final float CURSOR_MIN_ALPHA = 0.45f;
@@ -54,9 +58,13 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         m_txBoardBg = new Texture(Gdx.files.internal("board.png"));
 		m_txFireCursor = new Texture(Gdx.files.internal("crosshair.png"));
         m_bPlayerBoard = new Board_Player(m_txBoardBg, m_txMissImage, m_txShipCenterImage, m_txShipEdgeImage);
+        m_bEnemyBoard = new Board(m_txBoardBg, m_txMissImage, m_txShipCenterImage, m_txShipEdgeImage);
+        m_aiEnemy = new EnemyAI();
 
-        m_bPlayerBoard.startPlacingShips();//placeShipsRandom();
+        m_bPlayerBoard.startPlacingShips();
+        m_bEnemyBoard.placeShipsRandom();
         m_iGameMode = MODE_PLACESHIP;
+        m_iModeCountdown = 0;
         //m_bPlacingShips = true;
 
 		//Load the sound effects and music
@@ -84,22 +92,54 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		//Tell the SpriteBatch to render in the coordinate system specified by the camera.
         m_bBatch.setProjectionMatrix(m_cCamera.combined);
 
+        //Update our state machine
+        if(m_iGameMode == MODE_PLAYERTURN && m_iModeCountdown > 0)
+        {
+            if(System.nanoTime() >= m_iModeCountdown)
+            {
+                m_iModeCountdown = 0;
+
+                //TODO Pause before enemy guess
+                m_iGameMode = MODE_ENEMYTURN;
+                m_iModeCountdown = (long)(System.nanoTime() + MODESWITCHTIME * NANOSEC);
+                m_aiEnemy.guess(m_bPlayerBoard);
+            }
+        }
+        else if(m_iGameMode == MODE_ENEMYTURN)   //&& m_iModeCountdown > 0
+        {
+            if(System.nanoTime() >= m_iModeCountdown)
+            {
+                m_iGameMode = MODE_PLAYERTURN;
+                m_iModeCountdown = 0;
+            }
+        }
+
 		//Draw within this batch
         m_bBatch.begin();
 
-		//TODO Determine board to draw and any text overlays
-        m_bPlayerBoard.draw(false, m_bBatch);
-
+		//TODO Determine any text overlays to draw
         //Draw crosshair over currently highlighted tile
         if(m_iGameMode == MODE_PLAYERTURN)
         {
-            //Set the alpha to sinusoidally increase/decrease for a nice effect
-            Color cCursorCol = new Color(1, 1, 1, CURSOR_MAX_ALPHA);    //Start at high alpha
-            double fSecondsElapsed = (double)System.nanoTime() / NANOSEC;   //Use current time for sin alpha multiply
-            cCursorCol.lerp(1,1,1,CURSOR_MIN_ALPHA, (float) Math.sin(fSecondsElapsed * Math.PI * CURSOR_FLASH_FREQ));   //Linearly interpolate this color to final value
-            m_bBatch.setColor(cCursorCol);
-            m_bBatch.draw(m_txFireCursor, m_ptCurMouseTile.x * Board.TILE_SIZE, m_ptCurMouseTile.y * Board.TILE_SIZE);
-            m_bBatch.setColor(Color.WHITE); //Reset color to default
+            m_bEnemyBoard.draw(true, m_bBatch);
+            if(m_iModeCountdown == 0)
+            {
+                //Set the alpha to sinusoidally increase/decrease for a nice effect
+                Color cCursorCol = new Color(1, 1, 1, CURSOR_MAX_ALPHA);    //Start at high alpha
+                double fSecondsElapsed = (double) System.nanoTime() / NANOSEC;   //Use current time for sin alpha multiply
+                cCursorCol.lerp(1, 1, 1, CURSOR_MIN_ALPHA, (float) Math.sin(fSecondsElapsed * Math.PI * CURSOR_FLASH_FREQ));   //Linearly interpolate this color to final value
+                m_bBatch.setColor(cCursorCol);
+                m_bBatch.draw(m_txFireCursor, m_ptCurMouseTile.x * Board.TILE_SIZE, m_ptCurMouseTile.y * Board.TILE_SIZE);
+                m_bBatch.setColor(Color.WHITE); //Reset color to default
+            }
+        }
+        else if(m_iGameMode == MODE_ENEMYTURN)
+        {
+            m_bPlayerBoard.draw(false, m_bBatch);
+        }
+        else if(m_iGameMode == MODE_PLACESHIP)
+        {
+            m_bPlayerBoard.draw(false, m_bBatch);
         }
 
         m_bBatch.end();
@@ -149,15 +189,16 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
                 if(m_bPlayerBoard.placeShip(iTileX, iTileY))
                     m_iGameMode = MODE_PLAYERTURN;    //Done placing ships; start playing now   //TODO Start player/enemy going first randomly?
             }
-            else if(m_iGameMode == MODE_PLAYERTURN)   //Playing
+            else if(m_iGameMode == MODE_PLAYERTURN && m_iModeCountdown == 0)   //Playing
             {
-                if (!m_bPlayerBoard.alreadyFired(iTileX, iTileY))
+                if (!m_bEnemyBoard.alreadyFired(iTileX, iTileY))
                 {
-                    Ship sHit = m_bPlayerBoard.fireAtPos(iTileX, iTileY);
+                    Ship sHit = m_bEnemyBoard.fireAtPos(iTileX, iTileY);
                     if (sHit != null)
                     {
                         //TODO Handle hitting a ship
                     }
+                    m_iModeCountdown = (long)(System.nanoTime() + MODESWITCHTIME * NANOSEC);
                 }
             }
 			//posX = screenX - sprite.getWidth()/2;

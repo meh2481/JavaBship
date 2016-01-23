@@ -31,8 +31,8 @@ public class EnemyAI
     {
         while(true)
         {
-            int xGuessPos = MathUtils.random(0, Board.BOARD_SIZE);
-            int yGuessPos = MathUtils.random(0, Board.BOARD_SIZE);
+            int xGuessPos = MathUtils.random(0, Board.BOARD_SIZE-1);
+            int yGuessPos = MathUtils.random(0, Board.BOARD_SIZE-1);
 
             if(m_iBoardState[yGuessPos][xGuessPos] == -1)
             {
