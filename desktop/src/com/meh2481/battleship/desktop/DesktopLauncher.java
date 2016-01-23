@@ -10,6 +10,7 @@ public class DesktopLauncher {
 		config.title = "Battleship";
 		config.width = 640;
 		config.height = 640;
+		config.resizable = false;
 		new LwjglApplication(new MyBattleshipGame(), config);
 	}
 }

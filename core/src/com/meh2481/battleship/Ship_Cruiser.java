@@ -7,8 +7,9 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
  */
 public class Ship_Cruiser extends Ship
 {
-    public int getSize() { return 3; }
-    public String getName() { return "Cruiser"; }
+    public int getSize() { return Ship.SIZE_CRUISER; }
+    public String getName() { return Ship.NAME_CRUISER; }
+    public int getType() { return Ship.TYPE_CRUISER; }
 
     public Ship_Cruiser(Sprite sCenter, Sprite sEdge)
     {

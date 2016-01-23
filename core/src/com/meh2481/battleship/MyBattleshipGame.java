@@ -25,8 +25,15 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 	private SpriteBatch m_bBatch;
 	private OrthographicCamera m_cCamera;
 	private Board_Player m_bPlayerBoard;
-    private boolean m_bPlacingShips;
+    //private boolean m_bPlacingShips;
     private Point m_ptCurMouseTile;   //Current tile the mouse is hovering over
+
+	//Variables to handle current game state
+    private int m_iGameMode;
+    private final int MODE_PLACESHIP = 0;
+    private final int MODE_PLAYERTURN = 1;
+    private final int MODE_ENEMYTURN = 2;
+    private final int MODE_GAMEOVER = 3;
 
     //Variables to deal with flashing cursor
     private final float CURSOR_MIN_ALPHA = 0.45f;
@@ -48,9 +55,9 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		m_txFireCursor = new Texture(Gdx.files.internal("crosshair.png"));
         m_bPlayerBoard = new Board_Player(m_txBoardBg, m_txMissImage, m_txShipCenterImage, m_txShipEdgeImage);
 
-        //TEST Place ships randomly on this board and just draw it
         m_bPlayerBoard.startPlacingShips();//placeShipsRandom();
-        m_bPlacingShips = true;
+        m_iGameMode = MODE_PLACESHIP;
+        //m_bPlacingShips = true;
 
 		//Load the sound effects and music
 		m_sMissSound = Gdx.audio.newSound(Gdx.files.internal("miss.ogg"));
@@ -84,7 +91,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         m_bPlayerBoard.draw(false, m_bBatch);
 
         //Draw crosshair over currently highlighted tile
-        if(!m_bPlacingShips)
+        if(m_iGameMode == MODE_PLAYERTURN)
         {
             //Set the alpha to sinusoidally increase/decrease for a nice effect
             Color cCursorCol = new Color(1, 1, 1, CURSOR_MAX_ALPHA);    //Start at high alpha
@@ -101,7 +108,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 	@Override
 	public boolean keyDown(int keycode)
 	{
-		//TEST Move ships around as we press R
+		/*/TEST Move ships around as we press R
 		if(keycode == Keys.R)
         {
             m_bPlayerBoard.reset();
@@ -112,7 +119,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         {
             m_bPlayerBoard.placeShipsRandom();
             m_bPlacingShips = false;
-        }
+        }*/
 
 		return false;
 	}
@@ -137,12 +144,12 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         iTileY = screenY / Board.TILE_SIZE;
 		if(button == Input.Buttons.LEFT)
 		{
-            if(m_bPlacingShips)
+            if(m_iGameMode == MODE_PLACESHIP)
             {
                 if(m_bPlayerBoard.placeShip(iTileX, iTileY))
-                    m_bPlacingShips = false;    //Done placing ships; start playing nao
+                    m_iGameMode = MODE_PLAYERTURN;    //Done placing ships; start playing now   //TODO Start player/enemy going first randomly?
             }
-            else    //Playing or whatever
+            else if(m_iGameMode == MODE_PLAYERTURN)   //Playing
             {
                 if (!m_bPlayerBoard.alreadyFired(iTileX, iTileY))
                 {
@@ -158,7 +165,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		}
 		else if(button == Input.Buttons.RIGHT)
 		{
-			if(m_bPlacingShips)
+			if(m_iGameMode == MODE_PLACESHIP)
                 m_bPlayerBoard.rotateShip();
 		}
 		return false;
@@ -184,7 +191,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         iTileY = screenY / Board.TILE_SIZE;
         m_ptCurMouseTile.x = iTileX;
         m_ptCurMouseTile.y = iTileY;
-        if(m_bPlacingShips)
+        if(m_iGameMode == MODE_PLACESHIP)
         {
             m_bPlayerBoard.moveShip(iTileX, iTileY);
         }

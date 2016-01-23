@@ -17,8 +17,27 @@ public abstract class Ship
     private int m_iXPos, m_iYPos;
     private Array<Integer> m_iHitPositions;
 
+    public static final int TYPE_CARRIER = 6;
+    public static final int TYPE_BATTLESHIP = 5;
+    public static final int TYPE_CRUISER = 4;
+    public static final int TYPE_SUBMARINE = 3;
+    public static final int TYPE_DESTROYER = 2;
+
+    public static final int SIZE_CARRIER = 5;
+    public static final int SIZE_BATTLESHIP = 4;
+    public static final int SIZE_CRUISER = 3;
+    public static final int SIZE_SUBMARINE = 3;
+    public static final int SIZE_DESTROYER = 2;
+
+    public static final String NAME_CARRIER = "Carrier";
+    public static final String NAME_BATTLESHIP = "Battleship";
+    public static final String NAME_CRUISER = "Cruiser";
+    public static final String NAME_SUBMARINE = "Submarine";
+    public static final String NAME_DESTROYER = "Destroyer";
+
     abstract public String getName();
     abstract public int getSize();
+    abstract public int getType();
 
     public void rotateHorizontal() { m_bHorizontal = true; }
     public void rotateVertical() { m_bHorizontal = false; }
