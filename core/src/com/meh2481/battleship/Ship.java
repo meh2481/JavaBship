@@ -1,5 +1,7 @@
 package com.meh2481.battleship;
 
+import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.utils.Array;
@@ -34,6 +36,8 @@ public abstract class Ship
     public static final String NAME_CRUISER = "Cruiser";
     public static final String NAME_SUBMARINE = "Submarine";
     public static final String NAME_DESTROYER = "Destroyer";
+
+    public static final float SHIP_SUNK_ALPHA = 0.7f;
 
     abstract public String getName();
     abstract public int getSize();
@@ -125,6 +129,12 @@ public abstract class Ship
         if(m_sShipHitSprite == null || m_sShipOKSprite == null) return;
         if(m_iXPos < 0 || m_iYPos < 0) return;
 
+        if(isSunk())
+        {
+            m_sShipHitSprite.setColor(1, 1, 1, SHIP_SUNK_ALPHA); //Draw at half alpha to signify sunk
+            m_sShipOKSprite.setColor(1, 1, 1, SHIP_SUNK_ALPHA);
+        }
+
         if(bHidden)
         {
             //Only draw tiles that have been hit
@@ -154,6 +164,12 @@ public abstract class Ship
                 m_sShipHitSprite.setPosition((m_iXPos + ((m_bHorizontal)?(i):(0)))* m_sShipHitSprite.getWidth(), (m_iYPos + ((m_bHorizontal)?(0):(i)))* m_sShipHitSprite.getHeight());
                 m_sShipHitSprite.draw(bBatch);
             }
+        }
+
+        if(isSunk())
+        {
+            m_sShipOKSprite.setColor(Color.WHITE);  //Reset to default color since other ships share this sprite
+            m_sShipHitSprite.setColor(Color.WHITE);
         }
     }
 
