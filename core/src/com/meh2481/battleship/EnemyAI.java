@@ -11,7 +11,9 @@ public class EnemyAI
 {
     private static final int INVALID_POS = -1;
     private static final int GUESS_NONE = -1;
-    private static final int GUESS_MISS = 0;
+    public static final int GUESS_MISS = 0;
+    public static final int GUESS_HIT = 1;
+    public static final int GUESS_SUNK = 2;
 
     private int[][] m_iBoardState;
     private Point m_ptNextGuess;
@@ -35,7 +37,7 @@ public class EnemyAI
         m_ptNextGuess.setLocation(INVALID_POS, INVALID_POS);
     }
 
-    public Point nextGuessPos(Board b)
+    public Point nextGuessPos()
     {
         while(m_ptNextGuess.x == INVALID_POS || m_ptNextGuess.y == INVALID_POS)
         {
@@ -48,14 +50,23 @@ public class EnemyAI
         return m_ptNextGuess;
     }
 
-    public void guess(Board b)
+    public int guess(Board b)
     {
-        Point ptGuessPos = nextGuessPos(b);
+        int iHit = GUESS_MISS;
+        Point ptGuessPos = nextGuessPos();
         Ship sHit = b.fireAtPos(ptGuessPos.x, ptGuessPos.y);
         if(sHit != null)
+        {
             m_iBoardState[ptGuessPos.x][ptGuessPos.y] = sHit.getType();   //TODO Use this as basis for later guesses
+            if(sHit.isSunk())
+                iHit = GUESS_SUNK;
+            else
+                iHit = GUESS_HIT;
+        }
         else
             m_iBoardState[ptGuessPos.x][ptGuessPos.y] = GUESS_MISS;
         m_ptNextGuess.setLocation(INVALID_POS, INVALID_POS);
+
+        return iHit;
     }
 }

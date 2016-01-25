@@ -25,7 +25,12 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
     private Texture m_txFireCursorSm;
     private Texture m_txFireCursorLg;
 	private Sound m_sMissSound;
-	private Music m_mBeginMusic;
+    private Sound m_sHitSound;
+    private Sound m_sSunkSound;
+    private Sound m_sWinSound;
+    private Sound m_sLoseSound;
+	private Music m_mPlacingMusic;
+    private Music m_mPlayingMusic;
 
     //Variables to handle rendering
 	private SpriteBatch m_bBatch;
@@ -81,7 +86,12 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         m_txFireCursorSm = new Texture(Gdx.files.internal("crosshair.png"));
         m_txFireCursorLg = new Texture(Gdx.files.internal("crosshair_lg.png"));
         m_sMissSound = Gdx.audio.newSound(Gdx.files.internal("miss.ogg"));
-        m_mBeginMusic = Gdx.audio.newMusic(Gdx.files.internal("beginningMusic.ogg"));
+        m_sHitSound = Gdx.audio.newSound(Gdx.files.internal("hit.ogg"));
+        m_sLoseSound = Gdx.audio.newSound(Gdx.files.internal("youLose.ogg"));
+        m_sWinSound = Gdx.audio.newSound(Gdx.files.internal("youWin.ogg"));
+        m_sSunkSound = Gdx.audio.newSound(Gdx.files.internal("sunk.ogg"));
+        m_mPlacingMusic = Gdx.audio.newMusic(Gdx.files.internal("beginningMusic.ogg"));
+        m_mPlayingMusic = Gdx.audio.newMusic(Gdx.files.internal("mainTheme.ogg"));
 
         //Create game logic classes
         m_bPlayerBoard = new Board_Player(m_txBoardBg, m_txMissImage, m_txShipCenterImage, m_txShipEdgeImage);
@@ -98,9 +108,9 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         m_iEnemyGuessTimer = 0;
         m_ptCurMouseTile = new Point(-1,-1);
 
-		//TODO Start the playback of the background music immediately
-		//m_mBeginMusic.setLooping(true);
-		//m_mBeginMusic.play();
+        m_mPlayingMusic.setLooping(true);
+		m_mPlacingMusic.setLooping(true);
+		m_mPlacingMusic.play();
 
 		//Set the camera origin 0,0 to be upper-left, not bottom-left like the gdx default (makes math easier)
 		m_cCamera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -127,7 +137,8 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
                 {
                     m_iGameMode = MODE_GAMEOVER;
                     m_iCharWon = PLAYER_WON;
-                    //TODO Play winning music
+                    //Play winning music
+                    m_sWinSound.play();
                 }
                 else
                 {
@@ -142,7 +153,16 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
             {
                 if(System.nanoTime() >= m_iEnemyGuessTimer) //If we've waited long enough
                 {
-                    m_aiEnemy.guess(m_bPlayerBoard);    //Make enemy AI fire at their guessed position
+                    int iHit = m_aiEnemy.guess(m_bPlayerBoard); //Make enemy AI fire at their guessed position
+
+                    //Play the appropriate sound
+                    if(iHit == EnemyAI.GUESS_HIT)
+                        m_sHitSound.play();
+                    else if(iHit == EnemyAI.GUESS_MISS)
+                        m_sMissSound.play();
+                    else if(!m_bPlayerBoard.boardCleared())
+                        m_sSunkSound.play();
+
                     m_iModeCountdown = (long)(System.nanoTime() + MODESWITCHTIME * NANOSEC);    //Start countdown for switching to player's turn
                     m_iEnemyGuessTimer = 0; //Stop counting down
                 }
@@ -156,7 +176,8 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
                     {
                         m_iGameMode = MODE_GAMEOVER;
                         m_iCharWon = ENEMY_WON;
-                        //TODO Play losing music
+                        //Play losing sound
+                        m_sLoseSound.play();
                     }
                     else
                     {
@@ -195,7 +216,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
             if(m_iEnemyGuessTimer > 0)  //Draw enemy homing in on their shot
             {
                 //Find pixel coordinates of the center of where the crosshair will be
-                Point ptEnemyGuessPos = m_aiEnemy.nextGuessPos(m_bPlayerBoard);
+                Point ptEnemyGuessPos = m_aiEnemy.nextGuessPos();
                 double xCrosshairCenter = ptEnemyGuessPos.x * Board.TILE_SIZE + (double)Board.TILE_SIZE / 2.0;
                 double yCrosshairCenter = ptEnemyGuessPos.y * Board.TILE_SIZE + (double)Board.TILE_SIZE / 2.0;
 
@@ -286,7 +307,11 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
             if(m_iGameMode == MODE_PLACESHIP)   //Placing ships; lock this ship's position and go to next ship
             {
                 if(m_bPlayerBoard.placeShip(iTileX, iTileY))
+                {
                     m_iGameMode = MODE_PLAYERTURN;    //Done placing ships; start playing now   //TODO Start player/enemy going first randomly?
+                    m_mPlacingMusic.stop();
+                    m_mPlayingMusic.play();
+                }
             }
             else if(m_iGameMode == MODE_PLAYERTURN && m_iModeCountdown == 0)   //Playing; fire at a ship
             {
@@ -295,24 +320,33 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
                     Ship sHit = m_bEnemyBoard.fireAtPos(iTileX, iTileY);    //Fire!
                     if(sHit != null)    //If we hit a ship
                     {
+                        if(sHit.isSunk() && !m_bEnemyBoard.boardCleared())
+                            m_sSunkSound.play();
+                        else
+                            m_sHitSound.play();
                         //TODO Handle hitting a ship
                     }
                     else
                     {
+                        m_sMissSound.play();
                         //TODO Handle missing a ship
                     }
                     m_iModeCountdown = (long)(System.nanoTime() + MODESWITCHTIME * NANOSEC);    //Start countdown timer for the start of the enemy turn
                 }
             }
-            else if(m_iGameMode == MODE_GAMEOVER)
+            else if(m_iGameMode == MODE_GAMEOVER) //Gameover; start new game
             {
+                //Reset boards and game state
                 m_iGameMode = MODE_PLACESHIP;
                 m_bPlayerBoard.reset();
                 m_bEnemyBoard.reset();
                 m_aiEnemy.reset();
                 m_bPlayerBoard.startPlacingShips();
                 m_bEnemyBoard.placeShipsRandom();
-                //TODO Play placing music again
+
+                //Start playing music
+                m_mPlayingMusic.stop();
+                m_mPlacingMusic.play();
             }
 		}
 		else if(button == Input.Buttons.RIGHT)  //Clicking right mouse button
@@ -370,7 +404,12 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         m_txFireCursorSm.dispose();
         m_txFireCursorLg.dispose();
 		m_sMissSound.dispose();
-		m_mBeginMusic.dispose();
+        m_sHitSound.dispose();
+        m_sSunkSound.dispose();
+        m_sWinSound.dispose();
+        m_sLoseSound.dispose();
+		m_mPlacingMusic.dispose();
+        m_mPlayingMusic.dispose();
         m_bBatch.dispose();
         m_rShapeRenderer.dispose();
         m_ftTextFont.dispose();
