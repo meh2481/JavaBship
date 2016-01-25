@@ -37,6 +37,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
     private ShapeRenderer m_rShapeRenderer;
 	private OrthographicCamera m_cCamera;
     private BitmapFont m_ftTextFont;
+    private String m_sOverlayTxt;
 
     //Classes that hold game information
 	private Board_Player m_bPlayerBoard;        //Board the player places ships on and the enemy guesses onto
@@ -53,6 +54,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
     private long m_iModeCountdown;  //Delay timer for counting down to next game state change
     private long m_iEnemyGuessTimer;    //Pause timer for before enemy guess so the player can tell where they're guessing
     private final double MODESWITCHTIME = 0.6;
+    private final double PLAYERHITPAUSE = 1.25;
 
     //Constants to deal with flashing cursor
     private final float CURSOR_MIN_ALPHA = 0.45f;
@@ -65,9 +67,12 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
     private int m_iCharWon;
     private final int PLAYER_WON = 0;
     private final int ENEMY_WON = 1;
-    private String GAMEOVER_STR = "Game Over";
-    private String ENEMY_WON_STR = "You Lose";
-    private String PLAYER_WON_STR = "You Win";
+    private final String GAMEOVER_STR = "Game Over";
+    private final String ENEMY_WON_STR = "You Lose";
+    private final String PLAYER_WON_STR = "You Win";
+    private final String MISS_STR = "Miss";
+    private final String HIT_STR = "Hit ";
+    private final String SUNK_STR = "Sunk ";
     private final int GAMEOVER_STR_PT = 5;
     private final int GAMEOVER_SUBSTR_PT = 4;
 
@@ -116,6 +121,32 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		m_cCamera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		m_cCamera.setToOrtho(true, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 	}
+
+    public void drawLgText(String sMsg)    //Draw large text message in upper center of screen
+    {
+        if(sMsg.isEmpty())
+            return;
+
+        final int iTextOffset = 15;  //Used to center textbox around gameover text
+
+        //Draw black box behind text so it shows up better
+        m_bBatch.end(); //In order to do this, we need to stop drawing the spritebatch so we can draw shapes
+        Gdx.gl.glEnable(GL20.GL_BLEND); //Enable OpenGL blending so the box properly shows up low-alpha
+        m_rShapeRenderer.begin(ShapeRenderer.ShapeType.Filled); //Start drawing shapes with a filled background
+
+        m_rShapeRenderer.setColor(0, 0, 0, 0.65f);  //Set the color to a lower-alpha black
+        m_ftTextFont.getData().setScale(GAMEOVER_STR_PT);
+        m_rShapeRenderer.rect(0, Gdx.graphics.getHeight() / 4 - iTextOffset, Gdx.graphics.getWidth(), m_ftTextFont.getLineHeight());    //Draw behind where the text will be
+
+        m_rShapeRenderer.end(); //Done rendering shapes
+        Gdx.gl.glDisable(GL20.GL_BLEND);    //Disable OpenGL blending to get back to previous OpenGL state
+        m_bBatch.begin();   //Begin drawing the SpriteBatch again
+
+        //Draw gameover text larger and higher up
+        m_ftTextFont.setColor(1.0f, 1.0f, 1.0f, 1.0f);
+        m_ftTextFont.getData().setScale(GAMEOVER_STR_PT);
+        m_ftTextFont.draw(m_bBatch, sMsg, 0, Gdx.graphics.getHeight() / 4, Gdx.graphics.getWidth(), Align.center, false);
+    }
 
 	@Override
 	public void render()
@@ -192,8 +223,6 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         //---------------------------------
         m_bBatch.begin();
 
-		//TODO Determine any text overlays to draw
-
         if(m_iGameMode == MODE_PLAYERTURN)  //On the player's turn, draw enemy board, guessed positions, and cursor
         {
             //Draw enemy's board and player's guessed positions
@@ -208,6 +237,8 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
                 m_bBatch.draw(m_txFireCursorSm, m_ptCurMouseTile.x * Board.TILE_SIZE, m_ptCurMouseTile.y * Board.TILE_SIZE);
                 m_bBatch.setColor(Color.WHITE); //Reset color to default
             }
+            else
+                drawLgText(m_sOverlayTxt);  //Draw text overlay for hit/miss
         }
         else if(m_iGameMode == MODE_ENEMYTURN)  //On enemy's turn, draw player's board and crosshair animation if applicable
         {
@@ -234,29 +265,12 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         }
         else if(m_iGameMode == MODE_GAMEOVER)
         {
-            final int iTextOffset = 15;  //Used to center textbox around gameover text
             if(m_iCharWon == PLAYER_WON)
                 m_bEnemyBoard.draw(false, m_bBatch);
             else
                 m_bPlayerBoard.draw(false, m_bBatch);
 
-            //Draw black box behind gameover text so it shows up better
-            m_bBatch.end(); //In order to do this, we need to stop drawing the spritebatch so we can draw shapes
-            Gdx.gl.glEnable(GL20.GL_BLEND); //Enable OpenGL blending so the box properly shows up low-alpha
-            m_rShapeRenderer.begin(ShapeRenderer.ShapeType.Filled); //Start drawing shapes with a filled background
-
-            m_rShapeRenderer.setColor(0, 0, 0, 0.75f);  //Set the color to a lower-alpha black
-            m_ftTextFont.getData().setScale(GAMEOVER_STR_PT);
-            m_rShapeRenderer.rect(0, Gdx.graphics.getHeight() / 4 - iTextOffset, Gdx.graphics.getWidth(), m_ftTextFont.getLineHeight());    //Draw behind where the gameover text will be
-
-            m_rShapeRenderer.end(); //Done rendering shapes
-            Gdx.gl.glDisable(GL20.GL_BLEND);    //Disable OpenGL blending to get back to previous OpenGL state
-            m_bBatch.begin();   //Begin drawing the SpriteBatch again
-
-            //Draw gameover text larger and higher up
-            m_ftTextFont.setColor(1.0f, 1.0f, 1.0f, 1.0f);
-            m_ftTextFont.getData().setScale(GAMEOVER_STR_PT);
-            m_ftTextFont.draw(m_bBatch, GAMEOVER_STR, 0, Gdx.graphics.getHeight() / 4, Gdx.graphics.getWidth(), Align.center, false);
+            drawLgText(GAMEOVER_STR);
 
             //Draw player won/lost text green, slightly smaller, and lower down
             if(m_iCharWon == PLAYER_WON)
@@ -276,8 +290,25 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 	@Override
 	public boolean keyDown(int keycode)
 	{
-		//TODO Exit on Esc, start new game on some other key press
-		//if(keycode == Keys.R)
+		if(keycode == Input.Keys.ESCAPE)    //Exit game on Escape
+            Gdx.app.exit();
+        else if(keycode == Input.Keys.F5)   //Start new game on F5
+        {
+            //Reset boards and game state
+            m_iGameMode = MODE_PLACESHIP;
+            m_iModeCountdown = 0;
+            m_iEnemyGuessTimer = 0;
+            m_bPlayerBoard.reset();
+            m_bEnemyBoard.reset();
+            m_aiEnemy.reset();
+            m_bPlayerBoard.startPlacingShips();
+            m_bEnemyBoard.placeShipsRandom();
+
+            //Start playing music
+            m_mPlayingMusic.stop();
+            m_mPlacingMusic.stop();
+            m_mPlacingMusic.play();
+        }
 
 		return false;
 	}
@@ -308,7 +339,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
             {
                 if(m_bPlayerBoard.placeShip(iTileX, iTileY))
                 {
-                    m_iGameMode = MODE_PLAYERTURN;    //Done placing ships; start playing now   //TODO Start player/enemy going first randomly?
+                    m_iGameMode = MODE_PLAYERTURN;    //Done placing ships; start playing now. Player always goes first
                     m_mPlacingMusic.stop();
                     m_mPlayingMusic.play();
                 }
@@ -320,18 +351,24 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
                     Ship sHit = m_bEnemyBoard.fireAtPos(iTileX, iTileY);    //Fire!
                     if(sHit != null)    //If we hit a ship
                     {
-                        if(sHit.isSunk() && !m_bEnemyBoard.boardCleared())
-                            m_sSunkSound.play();
+                        if(sHit.isSunk())
+                        {
+                            if(!m_bEnemyBoard.boardCleared())
+                                m_sSunkSound.play();
+                            m_sOverlayTxt = SUNK_STR + sHit.getName();
+                        }
                         else
+                        {
                             m_sHitSound.play();
-                        //TODO Handle hitting a ship
+                            m_sOverlayTxt = HIT_STR + sHit.getName();
+                        }
                     }
                     else
                     {
                         m_sMissSound.play();
-                        //TODO Handle missing a ship
+                        m_sOverlayTxt = MISS_STR;
                     }
-                    m_iModeCountdown = (long)(System.nanoTime() + MODESWITCHTIME * NANOSEC);    //Start countdown timer for the start of the enemy turn
+                    m_iModeCountdown = (long)(System.nanoTime() + PLAYERHITPAUSE * NANOSEC);    //Start countdown timer for the start of the enemy turn
                 }
             }
             else if(m_iGameMode == MODE_GAMEOVER) //Gameover; start new game
