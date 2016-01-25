@@ -8,7 +8,10 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.utils.Align;
 
 import java.awt.*;
 
@@ -26,7 +29,9 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 
     //Variables to handle rendering
 	private SpriteBatch m_bBatch;
+    private ShapeRenderer m_rShapeRenderer;
 	private OrthographicCamera m_cCamera;
+    private BitmapFont m_ftTextFont;
 
     //Classes that hold game information
 	private Board_Player m_bPlayerBoard;        //Board the player places ships on and the enemy guesses onto
@@ -51,6 +56,16 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
     private final double NANOSEC = 1000000000.0;
     private final double MAX_CROSSHAIR_SCALE = 20.0;
 
+    //Constants to deal with gameover screen
+    private int m_iCharWon;
+    private final int PLAYER_WON = 0;
+    private final int ENEMY_WON = 1;
+    private String GAMEOVER_STR = "Game Over";
+    private String ENEMY_WON_STR = "You Lose";
+    private String PLAYER_WON_STR = "You Win";
+    private final int GAMEOVER_STR_PT = 5;
+    private final int GAMEOVER_SUBSTR_PT = 4;
+
 	@Override
 	public void create()
 	{
@@ -58,6 +73,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         Gdx.input.setInputProcessor(this);
 
 		//Load the game resources
+        m_ftTextFont = new BitmapFont(true);
 		m_txShipCenterImage = new Texture(Gdx.files.internal("ship_center.png"));
 		m_txShipEdgeImage = new Texture(Gdx.files.internal("ship_edge.png"));
         m_txMissImage = new Texture(Gdx.files.internal("miss.png"));
@@ -72,6 +88,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         m_bEnemyBoard = new Board(m_txBoardBg, m_txMissImage, m_txShipCenterImage, m_txShipEdgeImage);
         m_aiEnemy = new EnemyAI();
         m_bBatch = new SpriteBatch();
+        m_rShapeRenderer = new ShapeRenderer();
 
         //Initialize game state
         m_bPlayerBoard.startPlacingShips();
@@ -96,8 +113,9 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		//Tell the camera to update its matrices.
 		m_cCamera.update();
 
-		//Tell the SpriteBatch to render in the coordinate system specified by the camera.
+		//Set our batch drawing to use this updated camera matrix
         m_bBatch.setProjectionMatrix(m_cCamera.combined);
+        m_rShapeRenderer.setProjectionMatrix(m_cCamera.combined);
 
         //Update our state machine
         if(m_iGameMode == MODE_PLAYERTURN && m_iModeCountdown > 0)  //Player turn waiting for enemy turn
@@ -105,8 +123,17 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
             if(System.nanoTime() >= m_iModeCountdown)   //Timer expired; set to enemy turn
             {
                 m_iModeCountdown = 0;   //Reset timer
-                m_iGameMode = MODE_ENEMYTURN;   //Change mode
-                m_iEnemyGuessTimer = (long)(System.nanoTime() + MODESWITCHTIME * NANOSEC);  //Set timer for the pause before an enemy guess
+                if(m_bEnemyBoard.boardCleared())    //Game over; player won
+                {
+                    m_iGameMode = MODE_GAMEOVER;
+                    m_iCharWon = PLAYER_WON;
+                    //TODO Play winning music
+                }
+                else
+                {
+                    m_iGameMode = MODE_ENEMYTURN;   //Change mode
+                    m_iEnemyGuessTimer = (long) (System.nanoTime() + MODESWITCHTIME * NANOSEC);  //Set timer for the pause before an enemy guess
+                }
             }
         }
         else if(m_iGameMode == MODE_ENEMYTURN)  //Enemy turn
@@ -124,8 +151,17 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
             {
                 if(System.nanoTime() >= m_iModeCountdown)  //Countdown is done
                 {
-                    m_iGameMode = MODE_PLAYERTURN;  //Switch to player's turn
                     m_iModeCountdown = 0;   //Reset timer
+                    if(m_bPlayerBoard.boardCleared())   //Game over; enemy won
+                    {
+                        m_iGameMode = MODE_GAMEOVER;
+                        m_iCharWon = ENEMY_WON;
+                        //TODO Play losing music
+                    }
+                    else
+                    {
+                        m_iGameMode = MODE_PLAYERTURN;  //Switch to player's turn
+                    }
                 }
             }
         }
@@ -140,7 +176,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         if(m_iGameMode == MODE_PLAYERTURN)  //On the player's turn, draw enemy board, guessed positions, and cursor
         {
             //Draw enemy's board and player's guessed positions
-            m_bEnemyBoard.draw(true, m_bBatch);
+            m_bEnemyBoard.draw(!Gdx.input.isKeyPressed(Input.Keys.S), m_bBatch);
             if(m_iModeCountdown == 0)   //Draw a crosshair on the tile where the mouse cursor currently is hovering
             {
                 //Set the cursor's alpha to sinusoidally increase/decrease for a nice pulsating effect
@@ -174,6 +210,40 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         else if(m_iGameMode == MODE_PLACESHIP)  //If we're placing ships, just draw board as normal
         {
             m_bPlayerBoard.draw(false, m_bBatch);
+        }
+        else if(m_iGameMode == MODE_GAMEOVER)
+        {
+            final int iTextOffset = 15;  //Used to center textbox around gameover text
+            if(m_iCharWon == PLAYER_WON)
+                m_bEnemyBoard.draw(false, m_bBatch);
+            else
+                m_bPlayerBoard.draw(false, m_bBatch);
+
+            //Draw black box behind gameover text so it shows up better
+            m_bBatch.end(); //In order to do this, we need to stop drawing the spritebatch so we can draw shapes
+            Gdx.gl.glEnable(GL20.GL_BLEND); //Enable OpenGL blending so the box properly shows up low-alpha
+            m_rShapeRenderer.begin(ShapeRenderer.ShapeType.Filled); //Start drawing shapes with a filled background
+
+            m_rShapeRenderer.setColor(0, 0, 0, 0.75f);  //Set the color to a lower-alpha black
+            m_ftTextFont.getData().setScale(GAMEOVER_STR_PT);
+            m_rShapeRenderer.rect(0, Gdx.graphics.getHeight() / 4 - iTextOffset, Gdx.graphics.getWidth(), m_ftTextFont.getLineHeight());    //Draw behind where the gameover text will be
+
+            m_rShapeRenderer.end(); //Done rendering shapes
+            Gdx.gl.glDisable(GL20.GL_BLEND);    //Disable OpenGL blending to get back to previous OpenGL state
+            m_bBatch.begin();   //Begin drawing the SpriteBatch again
+
+            //Draw gameover text larger and higher up
+            m_ftTextFont.setColor(1.0f, 1.0f, 1.0f, 1.0f);
+            m_ftTextFont.getData().setScale(GAMEOVER_STR_PT);
+            m_ftTextFont.draw(m_bBatch, GAMEOVER_STR, 0, Gdx.graphics.getHeight() / 4, Gdx.graphics.getWidth(), Align.center, false);
+
+            //Draw player won/lost text green, slightly smaller, and lower down
+            if(m_iCharWon == PLAYER_WON)
+                m_ftTextFont.setColor(0.25f, 1.0f, 0.25f, 1.0f);    //Green if won
+            else
+                m_ftTextFont.setColor(1.0f, 0.1f, 0.1f, 1.0f);      //Red if lost
+            m_ftTextFont.getData().setScale(GAMEOVER_SUBSTR_PT);
+            m_ftTextFont.draw(m_bBatch, (m_iCharWon == PLAYER_WON)?(PLAYER_WON_STR):(ENEMY_WON_STR), 0, Gdx.graphics.getHeight() / 2, Gdx.graphics.getWidth(), Align.center, false);
         }
 
         //---------------------------------
@@ -228,9 +298,21 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
                         //TODO Handle hitting a ship
                     }
                     else
+                    {
                         //TODO Handle missing a ship
+                    }
                     m_iModeCountdown = (long)(System.nanoTime() + MODESWITCHTIME * NANOSEC);    //Start countdown timer for the start of the enemy turn
                 }
+            }
+            else if(m_iGameMode == MODE_GAMEOVER)
+            {
+                m_iGameMode = MODE_PLACESHIP;
+                m_bPlayerBoard.reset();
+                m_bEnemyBoard.reset();
+                m_aiEnemy.reset();
+                m_bPlayerBoard.startPlacingShips();
+                m_bEnemyBoard.placeShipsRandom();
+                //TODO Play placing music again
             }
 		}
 		else if(button == Input.Buttons.RIGHT)  //Clicking right mouse button
@@ -290,5 +372,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		m_sMissSound.dispose();
 		m_mBeginMusic.dispose();
         m_bBatch.dispose();
+        m_rShapeRenderer.dispose();
+        m_ftTextFont.dispose();
 	}
 }

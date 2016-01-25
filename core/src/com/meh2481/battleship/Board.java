@@ -15,8 +15,8 @@ import java.util.Iterator;
  */
 public class Board
 {
-    public static final int BOARD_SIZE = 10;
-    public static final int TILE_SIZE = 64;
+    public static final int BOARD_SIZE = 10;    //X and Y size of the board, in tiles
+    public static final int TILE_SIZE = 64;     //Size of each tile, in pixels
 
     private Texture m_txBoardBg;    //Texture for the board background
     private Texture m_txMissImage;  //Image to draw when we've guessed somewhere and missed
@@ -25,9 +25,11 @@ public class Board
 
     public Board(Texture txBg, Texture txMiss, Texture txCenter, Texture txEdge)
     {
+        //Hang onto the board background and miss tile textures
         m_txBoardBg = txBg;
         m_txMissImage = txMiss;
 
+        //Create arrays
         m_lShips = new Array<Ship>();
         m_lMissGuessPos = new Array<Point>();
 
@@ -41,6 +43,7 @@ public class Board
         m_lShips.add(new Ship_Destroyer(sCenter, sEdge));
     }
 
+    //Reset the board to uninitialized state
     public void reset()
     {
         for(Ship s : m_lShips)
@@ -49,6 +52,7 @@ public class Board
         m_lMissGuessPos.clear();
     }
 
+    //Draw the board to the specified Batch. bHidden = true means hide ships that haven't been hit, false means draw all ships
     public void draw(boolean bHidden, Batch bBatch)
     {
         //Draw board background image
@@ -72,6 +76,7 @@ public class Board
         return true;
     }
 
+    //Get the number of ships that haven't been sunk yet
     public int shipsLeft()
     {
         int numLeft = 0;
@@ -83,13 +88,13 @@ public class Board
         return numLeft;
     }
 
+    //Position ships randomly around the board (unintelligent, but non-overlapping)
     public void placeShipsRandom()
     {
-        //Clear all positions
+        //Clear all current ship positions
         for(Ship s : m_lShips)
             s.setPosition(-1, -1);
 
-        //for(Ship s : m_lShips)
         for(int i = 0; i < m_lShips.size; i++)
         {
             int xPos = -1, yPos = -1;
