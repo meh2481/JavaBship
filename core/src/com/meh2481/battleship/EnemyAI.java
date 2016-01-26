@@ -149,8 +149,12 @@ public class EnemyAI
             while(m_ptNextGuess.x == INVALID_POS || m_ptNextGuess.y == INVALID_POS)
             {
                 System.out.println("guessing random");
-                m_ptNextGuess.x = MathUtils.random(0, Board.BOARD_SIZE - 1);  //TODO Smarter AI than just randomly guessing
+                m_ptNextGuess.x = MathUtils.random(0, (Board.BOARD_SIZE/2) - 1);  //only have to guess one every other tile
                 m_ptNextGuess.y = MathUtils.random(0, Board.BOARD_SIZE - 1);
+                if((m_ptNextGuess.y % 2) == 0)
+                    m_ptNextGuess.x = m_ptNextGuess.x * 2 + 1;  //Every other row, shift this over one
+                else
+                    m_ptNextGuess.x *= 2;
 
                 if(m_iBoardState[m_ptNextGuess.x][m_ptNextGuess.y] != GUESS_NONE)
                     m_ptNextGuess.setLocation(INVALID_POS, INVALID_POS);
