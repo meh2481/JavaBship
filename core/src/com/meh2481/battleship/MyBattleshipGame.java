@@ -87,7 +87,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
     //For drawing messages about AI difficulty
     private final String AI_EASY_STR    = "Easy AI";
     private final String AI_HARD_STR    = "Difficult AI";
-    private final String CONTROLS_INTRO_STR = "Press LMB to place, RMB to rotate, D to change AI difficulty";
+    private final String CONTROLS_INTRO_STR = "Press RMB to rotate ship, LMB to place it, D to change enemy AI difficulty";
     private final double AI_MSG_LEN     = 3.0;  //Default time in seconds to display these messages
     private final double CONTROLS_INTRO_LEN = 15.0; //Default time in seconds to display intro controls message
     private final int AI_MSG_OFFSET = 20;   //Offset in pixels from top of screen to display this message
@@ -259,7 +259,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         if(m_iGameMode == MODE_PLAYERTURN)  //On the player's turn, draw enemy board, guessed positions, and cursor
         {
             //Draw enemy's board and player's guessed positions
-            m_bEnemyBoard.draw(!Gdx.input.isKeyPressed(Input.Keys.S), m_bBatch);
+            m_bEnemyBoard.draw(!Gdx.input.isKeyPressed(Input.Keys.S), m_bBatch);    //Cheat code: holding S shows placement of enemy ships
             if(m_iModeCountdown == 0)   //Draw a crosshair on the tile where the mouse cursor currently is hovering
             {
                 //Set the cursor's alpha to sinusoidally increase/decrease for a nice pulsating effect
