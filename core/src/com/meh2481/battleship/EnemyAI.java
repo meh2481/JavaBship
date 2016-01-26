@@ -59,8 +59,8 @@ public class EnemyAI
     private Point m_ptNextGuess;    //Location on the map our next guess will be
     private boolean m_bHardMode;    //True for harder AI
 
-    public boolean isHardMode() { return m_bHardMode; }
-    public void setHardMode(boolean bHardMode) { m_bHardMode = bHardMode; }
+    public boolean isHardMode() { return m_bHardMode; }     //returns true if ai is set to difficult, false if not
+    public void setHardMode(boolean bHardMode) { m_bHardMode = bHardMode; } //set the difficulty of the ai
     public void setEasy() { m_bHardMode = false; }
     public void setHard() { m_bHardMode = true; }
 
@@ -148,7 +148,7 @@ public class EnemyAI
 
     /**
      * Returns the direction between the two given points (starting at ptFrom, returns direction to ptTo)
-     * @pre     assumes the direction between the two points is l/r/u/d, no diagonals
+     * precondition -     assumes the direction between the two points is l/r/u/d, no diagonals
      *
      * @param ptFrom    Starting position
      * @param ptTo      Final position

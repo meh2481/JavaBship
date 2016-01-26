@@ -84,6 +84,16 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
     private final int GAMEOVER_STR_PT = 5;  //Scale fac for gameover and large info text
     private final int GAMEOVER_SUBSTR_PT = 4;   //Scale fac for smaller "player/enemy won" text
 
+    //For drawing messages about AI difficulty
+    private final String AI_EASY_STR    = "Easy AI";
+    private final String AI_HARD_STR    = "Difficult AI";
+    private final String CONTROLS_INTRO_STR = "Press LMB to place, RMB to rotate, D to change AI difficulty";
+    private final double AI_MSG_LEN     = 3.0;  //Default time in seconds to display these messages
+    private final double CONTROLS_INTRO_LEN = 15.0; //Default time in seconds to display intro controls message
+    private final int AI_MSG_OFFSET = 20;   //Offset in pixels from top of screen to display this message
+    private long m_iAIMsgCountdown;  //time in nanoseconds left to display message
+    private String m_sMsgTxt;
+
     /**
      * Create all the resources for our game. Called by libGDX automagically
      */
@@ -132,6 +142,10 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		//Set the camera origin 0,0 to be upper-left, not bottom-left like the gdx default (makes math easier)
 		m_cCamera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		m_cCamera.setToOrtho(true, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+        //Show game controls text
+        m_iAIMsgCountdown = System.nanoTime() + (long)(CONTROLS_INTRO_LEN * NANOSEC);   //Show message longer than normal to give player time to read
+        m_sMsgTxt = CONTROLS_INTRO_STR;
 	}
 
     /** Draw a large text message in upper center of screen
@@ -300,6 +314,14 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
             m_ftTextFont.draw(m_bBatch, (m_iCharWon == PLAYER_WON)?(PLAYER_WON_STR):(ENEMY_WON_STR), 0, Gdx.graphics.getHeight() / 2, Gdx.graphics.getWidth(), Align.center, false);
         }
 
+        //See if we should draw small message at the top of the screen
+        if(System.nanoTime() < m_iAIMsgCountdown)
+        {
+            m_ftTextFont.setColor(1.0f, 1.0f, 1.0f, 1.0f);  //set back to white
+            m_ftTextFont.getData().setScale(1);
+            m_ftTextFont.draw(m_bBatch, m_sMsgTxt, 0, AI_MSG_OFFSET, Gdx.graphics.getWidth(), Align.center, false);
+        }
+
         //---------------------------------
         // End drawing loop
         //---------------------------------
@@ -332,6 +354,17 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
             m_mPlayingMusic.stop();
             m_mPlacingMusic.stop();
             m_mPlacingMusic.play();
+        }
+        else if(keycode == Input.Keys.D)    //Change difficulty on D
+        {
+            //Show message at top of screen alterting player of this change
+            m_iAIMsgCountdown = System.nanoTime() + (long)(AI_MSG_LEN * NANOSEC);
+            m_aiEnemy.setHardMode(!m_aiEnemy.isHardMode()); //Switch difficulty of AI
+            //Set to correct message
+            if(m_aiEnemy.isHardMode())
+                m_sMsgTxt = AI_HARD_STR;
+            else
+                m_sMsgTxt = AI_EASY_STR;
         }
 
 		return false;
