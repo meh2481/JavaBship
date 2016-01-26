@@ -1,17 +1,17 @@
 package com.meh2481.battleship;
 
 import com.badlogic.gdx.graphics.*;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
-
 import java.awt.*;
-import java.util.Iterator;
 
 /**
  * Created by Mark on 1/15/2016.
+ *
+ * Defines a class for handling how ships are placed on the Battleship board, and for causing interactions
+ * (such as firing at a ship, placing ships randomly on the board, etc)
  */
 public class Board
 {
@@ -23,6 +23,13 @@ public class Board
     protected Array<Ship> m_lShips;   //Ships on this board
     private Array<Point> m_lMissGuessPos;   //Places on the map that have been guessed already, and were misses
 
+    /**
+     * Constructor for creating a Board class object
+     * @param txBg  Background board texture to use as the backdrop when drawing the board
+     * @param txMiss    Texture used for drawing guesses that missed
+     * @param txCenter  Texture used for drawing the central portion of ships that have been hit
+     * @param txEdge    Texture used for drawing the edge of ships
+     */
     public Board(Texture txBg, Texture txMiss, Texture txCenter, Texture txEdge)
     {
         //Hang onto the board background and miss tile textures
@@ -43,7 +50,9 @@ public class Board
         m_lShips.add(new Ship_Destroyer(sCenter, sEdge));
     }
 
-    //Reset the board to uninitialized state
+    /**
+     * Reset the board to uninitialized state
+     */
     public void reset()
     {
         for(Ship s : m_lShips)
@@ -52,7 +61,11 @@ public class Board
         m_lMissGuessPos.clear();
     }
 
-    //Draw the board to the specified Batch. bHidden = true means hide ships that haven't been hit, false means draw all ships
+/** Draw the board and all ships on it onto the specified Batch.
+ *
+ * @param    bHidden     true means hide ships that haven't been hit, false means draw all ships
+ * @param    bBatch      The batch to draw the board onto
+ */
     public void draw(boolean bHidden, Batch bBatch)
     {
         //Draw board background image
@@ -65,7 +78,10 @@ public class Board
             s.draw(bHidden, bBatch);
     }
 
-    //Returns true if every ship on the board is sunk, false otherwise
+    /**
+     * Test to see if every ship is sunk
+     * @return true if every ship on the board is sunk, false otherwise
+     */
     public boolean boardCleared()
     {
         for(Ship s : m_lShips)
@@ -76,7 +92,10 @@ public class Board
         return true;
     }
 
-    //Get the number of ships that haven't been sunk yet
+    /**
+     * Get the number of ships that haven't been sunk yet
+     * @return  Number of ships that are still afloat
+     */
     public int shipsLeft()
     {
         int numLeft = 0;
@@ -88,7 +107,9 @@ public class Board
         return numLeft;
     }
 
-    //Position ships randomly around the board (unintelligent, but non-overlapping)
+    /**
+     * Position ships randomly around the board (unintelligent, but non-overlapping)
+     */
     public void placeShipsRandom()
     {
         //Clear all current ship positions
@@ -130,7 +151,12 @@ public class Board
         }
     }
 
-    //Test if we've already fired at this position (true if we have, false if not)
+    /** Test if we've already fired a missile at this position
+     *
+     * @param    xPos     x position to test
+     * @param    yPos     y position to test
+     * @return  true if we have fired at this position already, false if not
+     */
     public boolean alreadyFired(int xPos, int yPos)
     {
         //Check if we've missed by guessing in this position already
@@ -149,7 +175,12 @@ public class Board
         return false;
     }
 
-    //Fire at this position, returning ship that was hit or null on miss
+    /** Fire at this position, returning ship that was hit or null on miss
+     *
+     * @param       xPos     x position to fire to
+     * @param       yPos     y position to fire to
+     * @return      Ship that was hit or null on miss
+     */
     public Ship fireAtPos(int xPos, int yPos)
     {
         for(Ship s : m_lShips)

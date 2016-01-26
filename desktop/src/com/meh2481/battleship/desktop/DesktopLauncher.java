@@ -5,8 +5,18 @@ import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
 import com.meh2481.battleship.MyBattleshipGame;
 
+/**
+ * Created by Mark on 1/13/2016.
+ *
+ * Program entry point. Launches LibGDX
+ */
+
 public class DesktopLauncher
 {
+    /**
+     * Entry point for main program. Initializes LibGDX and starts main loop
+     * @param arg   command-line arguments
+     */
     public static void main(String[] arg)
     {
         LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();

@@ -1,15 +1,15 @@
 package com.meh2481.battleship;
 
-import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.utils.Array;
 
-import java.awt.*;
-
 /**
  * Created by Mark on 1/15/2016.
+ *
+ * Abstract class for ships that handles interactions between ships, facilitates launching missiles at ships, etc
+ * See Ship_* classes for implementations of this class that contain ship-specific info (such as size, name, etc)
  */
 public abstract class Ship
 {
@@ -55,7 +55,11 @@ public abstract class Ship
     public void setPosition(int x, int y) { m_iXPos = x; m_iYPos = y; } //Sets the ship position
     public boolean isSunk() { return m_iHitPositions.size == getSize(); }   //Returns true if this ship has been sunk, false otherwise
 
-    //Constructor. Requires a sprite for the hit image and one for the non-hit image
+    /**
+     * Constructor. Requires a sprite for the hit image and one for the non-hit image
+     * @param sShipHit  LibGDX sprite to use when drawing the center part of the ship (hit image)
+     * @param sShipOK   LibGDX sprite to use when drawing the outside edge of the ship
+     */
     public Ship(Sprite sShipHit, Sprite sShipOK)
     {
         m_sShipHitSprite = sShipHit;
@@ -63,7 +67,9 @@ public abstract class Ship
         reset();    //Set default values
     }
 
-    //Resets this ship to default state (off board and not hit)
+    /**
+     * Resets this ship to default state (off board and not hit)
+     */
     public void reset()
     {
         m_iXPos = m_iYPos = -1;
@@ -71,7 +77,12 @@ public abstract class Ship
         m_iHitPositions = new Array<Integer>();
     }
 
-    //Fires at this ship. Returns true and marks as hit if hit, returns false on miss
+    /**
+     * Fires at this ship. Returns true and marks as hit if hit, returns false on miss
+     * @param iXpos board x position to test and see if on ship
+     * @param iYpos board y position to test and see if on ship
+     * @return  true on hit, false on miss
+     */
     public boolean fireAtShip(int iXpos, int iYpos)
     {
         if(isHit(iXpos, iYpos))
@@ -85,7 +96,12 @@ public abstract class Ship
         return false;
     }
 
-    //Test if iXpos, iYpos is a position the ship has already been hit on. Return true if so, false if not
+    /**
+     * Test if iXpos, iYpos is a position the ship has already been hit
+     * @param iXpos x board position to test
+     * @param iYpos y board position to test
+     * @return  true if this position on the ship has already been hit, false if not
+     */
     public boolean alreadyHit(int iXpos, int iYpos)
     {
         if(isHit(iXpos, iYpos))
@@ -107,7 +123,12 @@ public abstract class Ship
         return false;
     }
 
-    //Test if iXpos, iYpos is a location on the ship. Return true if it is, false if not
+    /**
+     * Test if iXpos, iYpos is a location on the ship
+     * @param iXpos x board position to test
+     * @param iYpos y board position to test
+     * @return  true if this is on the ship, false otherwise
+     */
     public boolean isHit(int iXpos, int iYpos)
     {
         if(isHorizontal())   //Ship aligned horizontally
@@ -127,7 +148,11 @@ public abstract class Ship
         return false;
     }
 
-    //Draw the ship to the specified SpriteBatch. Draw all tiles if bHidden is true, only hit tiles if false
+    /**
+     * Draw the ship to the specified SpriteBatch
+     * @param bHidden   if ship should be considered "hidden," that is only tiles that have previously been hit should be drawn
+     * @param bBatch    LibGDX batch to draw the ship to
+     */
     public void draw(boolean bHidden, Batch bBatch)
     {
         if(m_sShipHitSprite == null || m_sShipOKSprite == null) return; //Don't draw if no sprite textures
@@ -176,7 +201,11 @@ public abstract class Ship
         }
     }
 
-    //Return true if these ships overlap, false otherwise
+    /**
+     * Test and see if another ship overlaps this one
+     * @param sOther    other ship to test
+     * @return          true if the ships overlap, false otherwise
+     */
     public boolean checkOverlap(Ship sOther)
     {
         boolean bOverlapping = false;

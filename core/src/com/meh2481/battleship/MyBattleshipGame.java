@@ -14,6 +14,12 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.Align;
 import java.awt.*;
 
+/**
+ * Created by Mark on 1/13/2016.
+ *
+ * Handles game information for managing the player/enemy boards, drawing through LibGDX, restarting games,
+ * processing input, etc.
+ */
 public class MyBattleshipGame extends ApplicationAdapter implements InputProcessor
 {
     //Variables for image/sound resources
@@ -55,15 +61,15 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
     private final int MODE_GAMEOVER = 3;
     private long m_iModeCountdown;  //Delay timer for counting down to next game state change
     private long m_iEnemyGuessTimer;    //Pause timer for before enemy guess so the player can tell where they're guessing
-    private final double MODESWITCHTIME = 0.6;
-    private final double PLAYERHITPAUSE = 1.25;
+    private final double MODESWITCHTIME = 0.6;  //Time in seconds it takes the enemy AI to make an action and to switch the mode back to the player
+    private final double PLAYERHITPAUSE = 1.25; //Pause in seconds after player launches a missile, to let them read the result
 
     //Constants to deal with flashing cursor
-    private final float CURSOR_MIN_ALPHA = 0.45f;
-    private final float CURSOR_MAX_ALPHA = 0.7f;
-    private final double CURSOR_FLASH_FREQ = 1.65;
-    private final double NANOSEC = 1000000000.0;
-    private final double MAX_CROSSHAIR_SCALE = 20.0;
+    private final float CURSOR_MIN_ALPHA = 0.45f;   //Minimum cursor alpha (on a scale 0..1) when at its most transparent
+    private final float CURSOR_MAX_ALPHA = 0.7f;    //Maximum cursor alpha (on a scale 0..1) when at its most opaque
+    private final double CURSOR_FLASH_FREQ = 1.65;  //How many times per second the cursor flashes
+    private final double NANOSEC = 1000000000.0;    //Nanoseconds in a second (used for System.nanoTime() conversions)
+    private final double MAX_CROSSHAIR_SCALE = 20.0;    //Multiplying factor for how large the enemy firing cursor starts out
 
     //Constants to deal with gameover screen
     private int m_iCharWon;
@@ -75,10 +81,13 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
     private final String MISS_STR = "Miss";
     private final String HIT_STR = "Hit ";
     private final String SUNK_STR = "Sunk ";
-    private final int GAMEOVER_STR_PT = 5;
-    private final int GAMEOVER_SUBSTR_PT = 4;
+    private final int GAMEOVER_STR_PT = 5;  //Scale fac for gameover and large info text
+    private final int GAMEOVER_SUBSTR_PT = 4;   //Scale fac for smaller "player/enemy won" text
 
-	@Override
+    /**
+     * Create all the resources for our game. Called by libGDX automagically
+     */
+    @Override
 	public void create()
 	{
         //Tell GDX this class will be handling input
@@ -115,6 +124,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         m_iEnemyGuessTimer = 0;
         m_ptCurMouseTile = new Point(-1,-1);
 
+        //Start music
         m_mPlayingMusic.setLooping(true);
 		m_mPlacingMusic.setLooping(true);
 		m_mPlacingMusic.play();
@@ -124,7 +134,11 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		m_cCamera.setToOrtho(true, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 	}
 
-    public void drawLgText(String sMsg)    //Draw large text message in upper center of screen
+    /** Draw a large text message in upper center of screen
+     *
+     * @param       sMsg     Message to write to screen
+     */
+    public void drawLgText(String sMsg)
     {
         if(sMsg.isEmpty())
             return;
@@ -150,6 +164,9 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         m_ftTextFont.draw(m_bBatch, sMsg, 0, Gdx.graphics.getHeight() / 4, Gdx.graphics.getWidth(), Align.center, false);
     }
 
+    /**
+     * Handle drawing the game to the screen and updating game state (called by LibGDX every frame)
+     */
 	@Override
 	public void render()
 	{
@@ -221,7 +238,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         }
 
         //---------------------------------
-		//Begin drawing
+		// Begin drawing loop
         //---------------------------------
         m_bBatch.begin();
 
@@ -284,11 +301,16 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         }
 
         //---------------------------------
-        //End drawing
+        // End drawing loop
         //---------------------------------
         m_bBatch.end();
 	}
 
+    /**
+     * Called by LibGDX when a key is pressed
+     * @param keycode   key that was pressed
+     * @return  whether the input was processed
+     */
 	@Override
 	public boolean keyDown(int keycode)
 	{
@@ -315,6 +337,14 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		return false;
 	}
 
+    /**
+     * Called by LibGDX when a mouse click even occurs
+     * @param screenX   x position of mouse cursor on screen
+     * @param screenY   y position of mouse cursor on screen
+     * @param pointer   the pointer for the event
+     * @param button    mouse button that was pressed
+     * @return          true if input was processed
+     */
 	@Override
 	public boolean touchDown(int screenX, int screenY, int pointer, int button)
 	{
@@ -341,19 +371,19 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
                     Ship sHit = m_bEnemyBoard.fireAtPos(iTileX, iTileY);    //Fire!
                     if(sHit != null)    //If we hit a ship
                     {
-                        if(sHit.isSunk())
+                        if(sHit.isSunk())   //Sunk a ship
                         {
                             if(!m_bEnemyBoard.boardCleared())
                                 m_sSunkSound.play();
                             m_sOverlayTxt = SUNK_STR + sHit.getName();
                         }
-                        else
+                        else    //Hit a ship
                         {
                             m_sHitSound.play();
                             m_sOverlayTxt = HIT_STR + sHit.getName();
                         }
                     }
-                    else
+                    else    //Missed a ship
                     {
                         m_sMissSound.play();
                         m_sOverlayTxt = MISS_STR;
@@ -384,6 +414,12 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		return false;
 	}
 
+    /**
+     * Called by LibGDX when the mouse cursor moves
+     * @param screenX   new mouse cursor x position
+     * @param screenY   new mouse cursor y position
+     * @return          true if input processed
+     */
 	@Override
 	public boolean mouseMoved(int screenX, int screenY)
 	{
@@ -402,6 +438,9 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 		return false;
 	}
 
+    /**
+     * Called by LibGDX on app exit when it's a good time to clean up game resources
+     */
 	@Override
 	public void dispose()
 	{
@@ -424,7 +463,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         m_ftTextFont.dispose();
 	}
 
-    //Methods we have to override that we don't care about
+    //Methods we have to override for LibGDX purposes that we don't care about
     @Override
     public boolean touchUp(int screenX, int screenY, int pointer, int button) { return false; }
 
