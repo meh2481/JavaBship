@@ -26,7 +26,7 @@ public abstract class Ship
     public static final int TYPE_SUBMARINE = 3;
     public static final int TYPE_DESTROYER = 2;
 
-    //Ship sizes (lenghths of each ship type)
+    //Ship sizes (lengths of each ship type)
     public static final int SIZE_CARRIER = 5;
     public static final int SIZE_BATTLESHIP = 4;
     public static final int SIZE_CRUISER = 3;

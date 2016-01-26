@@ -12,23 +12,25 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.Align;
-
 import java.awt.*;
 
 public class MyBattleshipGame extends ApplicationAdapter implements InputProcessor
 {
     //Variables for image/sound resources
+    //Images
 	private Texture m_txShipCenterImage;
     private Texture m_txMissImage;
 	private Texture m_txShipEdgeImage;
     private Texture m_txBoardBg;
     private Texture m_txFireCursorSm;
     private Texture m_txFireCursorLg;
+    //Sounds
 	private Sound m_sMissSound;
     private Sound m_sHitSound;
     private Sound m_sSunkSound;
     private Sound m_sWinSound;
     private Sound m_sLoseSound;
+    //Music
 	private Music m_mPlacingMusic;
     private Music m_mPlayingMusic;
 
@@ -184,12 +186,12 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
             {
                 if(System.nanoTime() >= m_iEnemyGuessTimer) //If we've waited long enough
                 {
-                    int iHit = m_aiEnemy.guess(m_bPlayerBoard); //Make enemy AI fire at their guessed position
+                    EnemyAI.Guess gHit = m_aiEnemy.guess(m_bPlayerBoard); //Make enemy AI fire at their guessed position
 
                     //Play the appropriate sound
-                    if(iHit == EnemyAI.GUESS_HIT)
+                    if(gHit == EnemyAI.Guess.HIT)
                         m_sHitSound.play();
-                    else if(iHit == EnemyAI.GUESS_MISS)
+                    else if(gHit == EnemyAI.Guess.MISS)
                         m_sMissSound.play();
                     else if(!m_bPlayerBoard.boardCleared())
                         m_sSunkSound.play();
@@ -314,18 +316,6 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 	}
 
 	@Override
-	public boolean keyUp(int keycode)
-	{
-		return false;
-	}
-
-	@Override
-	public boolean keyTyped(char character)
-	{
-		return false;
-	}
-
-	@Override
 	public boolean touchDown(int screenX, int screenY, int pointer, int button)
 	{
         //Find what tile we're clicking on
@@ -371,7 +361,7 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
                     m_iModeCountdown = (long)(System.nanoTime() + PLAYERHITPAUSE * NANOSEC);    //Start countdown timer for the start of the enemy turn
                 }
             }
-            else if(m_iGameMode == MODE_GAMEOVER) //Gameover; start new game
+            else if(m_iGameMode == MODE_GAMEOVER) //Game over; start a new game
             {
                 //Reset boards and game state
                 m_iGameMode = MODE_PLACESHIP;
@@ -395,18 +385,6 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
 	}
 
 	@Override
-	public boolean touchUp(int screenX, int screenY, int pointer, int button)
-	{
-		return false;
-	}
-
-	@Override
-	public boolean touchDragged(int screenX, int screenY, int pointer)
-	{
-		return false;
-	}
-
-	@Override
 	public boolean mouseMoved(int screenX, int screenY)
 	{
         //Find the tile the player moved the mouse to
@@ -421,12 +399,6 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         if(m_iGameMode == MODE_PLACESHIP)   //If the player is currently placing ships, move ship preview to this location
             m_bPlayerBoard.moveShip(iTileX, iTileY);
 
-		return false;
-	}
-
-	@Override
-	public boolean scrolled(int amount)
-	{
 		return false;
 	}
 
@@ -451,4 +423,20 @@ public class MyBattleshipGame extends ApplicationAdapter implements InputProcess
         m_rShapeRenderer.dispose();
         m_ftTextFont.dispose();
 	}
+
+    //Methods we have to override that we don't care about
+    @Override
+    public boolean touchUp(int screenX, int screenY, int pointer, int button) { return false; }
+
+    @Override
+    public boolean touchDragged(int screenX, int screenY, int pointer) { return false; }
+
+    @Override
+    public boolean scrolled(int amount)	{ return false; }
+
+    @Override
+    public boolean keyUp(int keycode) { return false; }
+
+    @Override
+    public boolean keyTyped(char character) { return false; }
 }
