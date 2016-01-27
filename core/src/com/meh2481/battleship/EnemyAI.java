@@ -9,6 +9,10 @@ import java.util.LinkedList;
  *
  * Simple yet effective artificial intelligence for an enemy attempting to sink a player's ships.
  * Includes methods for AI decisions as well as helper enums for facilitating the results of these guesses.
+ * 
+ * Note that the AI still can be considered unintelligent even in hard AI mode, as it doesn't take into account
+ * ship sizes when guessing at the player's ships. It'll often guess in one-tile gaps or gaps that otherwise
+ * could not contain any of the remaining ships.
  */
 public class EnemyAI
 {
