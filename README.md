@@ -34,3 +34,5 @@ MyBattleshipGame | Game controller class that implements LibGDX functionality, h
 These classes and respective files can be found in the subfolder core/src/com/meh2481/battleship/ within the repo.
 
 There is also one more class DesktopLauncher within desktop/src/com/meh2481/battleship/desktop/ that contains the entry point for the program. This class does little except set up the LibGDX environment and start the engine's main loop.
+
+Also note that the AI still can be considered unintelligent even in hard AI mode, as it doesn't take into account ship sizes when guessing at the player's ships. It'll often guess in one-tile gaps or gaps that otherwise could not contain any of the remaining ships.
